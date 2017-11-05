@@ -2,6 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Leon Pennington</Authors>
+    <Company />
+    <Description>Simple Object mapping</Description>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>Leon Penninton 2017</Copyright>
+    <PackageTags>database orm mapping poco</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>bin\Debug\netstandard2.0\LScape.Data.xml</DocumentationFile>
   </PropertyGroup>
 
 </Project>
