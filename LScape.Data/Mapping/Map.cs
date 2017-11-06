@@ -17,6 +17,7 @@ namespace LScape.Data.Mapping
         private string _insertColumnList;
         private string _insertParameterList;
         private string _updateSetString;
+        private string _keyName;
 
         /// <summary>
         /// Constructs a new Map for a type
@@ -50,6 +51,8 @@ namespace LScape.Data.Mapping
         /// <inheritdoc/>
         public IEnumerable<Field> Fields => _fields;
 
+        #region Sql String Parts
+
         /// <summary>
         /// Select column list for use in a sql string
         /// </summary>
@@ -78,6 +81,16 @@ namespace LScape.Data.Mapping
         /// Update set string for use in a sql string
         /// </summary>
         public string UpdateSetString => _updateSetString ?? (_updateSetString = string.Join(", ", _fields.Where(f => f.FieldType == FieldType.Map).Select(f => $"[{f.ColumnName}] = @{f.ColumnName}")));
+
+        /// <summary>
+        /// Returns the key name for the map
+        /// </summary>
+        /// <remarks>If there are multiple keys only returns the first one</remarks>
+        public string KeyName => _keyName ?? (_keyName = _fields.First(f => f.FieldType == FieldType.Key).ColumnName);
+
+        #endregion
+
+        #region Set Field Types
 
         /// <summary>
         /// The properties to be ignored
@@ -127,7 +140,7 @@ namespace LScape.Data.Mapping
         /// <param name="properties">The name of the properties to set as calculated</param>
         /// <remarks>
         /// Usually for when properties are calculated on the database,
-        /// Identity Keys, Datestamps, etc...
+        /// Datestamps, RowVersion, etc...
         /// </remarks>
         public Map<T> Calculated(params string[] properties)
         {
@@ -136,6 +149,37 @@ namespace LScape.Data.Mapping
 
             return this;
         }
+
+        /// <summary>
+        /// The properties to set to Key
+        /// </summary>
+        /// <param name="properties">The properties to set as Key</param>
+        /// <remarks>
+        /// For properties that are calculated keys of the object. Does not take part
+        /// like calculated keys but are sent with parameters for updates.
+        /// </remarks>
+        public Map<T> Key(params Expression<Func<T, object>>[] properties)
+        {
+            return Key(properties.Select(PropertyName).ToArray());
+        }
+
+        /// <summary>
+        /// The properties to set to Key
+        /// </summary>
+        /// <param name="properties">The name of the properties to set as Key</param>
+        /// <remarks>
+        /// For properties that are calculated keys of the object. Does not take part
+        /// like calculated keys but are sent with parameters for updates.
+        /// </remarks>
+        public Map<T> Key(params string[] properties)
+        {
+            foreach (var field in _fields.Where(f => properties.Contains(f.PropertyName)))
+                field.FieldType = FieldType.Key;
+
+            return this;
+        }
+
+        #endregion
 
         /// <summary>
         /// Manually set a mapping for a property
@@ -161,6 +205,8 @@ namespace LScape.Data.Mapping
             return this;
         }
 
+        #region Create Objects
+
         /// <summary>
         /// Create object from a data reader
         /// </summary>
@@ -185,34 +231,42 @@ namespace LScape.Data.Mapping
         /// <returns></returns>
         public IEnumerable<T> CreateEnumerable(IDataReader reader)
         {
-            var props = new List<Action<T, IDataReader>>();
+            Action<T, IDataReader> readProps = null;
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 var name = reader.GetName(i);
                 var field = _fields.FirstOrDefault(f => f.ColumnName == name);
                 if (field != null)
-                    props.Add((e, r) => { field.PropertyInfo.SetValue(e, r.GetValue(field.ColumnName, field.PropertyInfo.PropertyType)); });
+                    readProps += (e, r) => { field.PropertyInfo.SetValue(e, r.GetValue(field.ColumnName, field.PropertyInfo.PropertyType)); };
             }
-
+            
             var items = new List<T>();
-            while (reader.Read())
+            if (readProps != null)
             {
-                var entity = new T();
-                props.ForEach(a => a(entity, reader));
-                items.Add(entity);
+                while (reader.Read())
+                {
+                    var entity = new T();
+                    readProps(entity, reader);
+                    items.Add(entity);
+                }
             }
 
             return items;
         }
+
+        #endregion
+
+        #region Parameters
 
         /// <summary>
         /// Adds parameters from the object to the command which are mapped
         /// </summary>
         /// <param name="command">The command to add parameters to</param>
         /// <param name="entity">Entity to get data from</param>
-        public void Parameters(IDbCommand command, T entity)
+        /// <param name="includeKeys">Whether to include keys in the list</param>
+        public void AddParameters(IDbCommand command, T entity, bool includeKeys = false)
         {
-            foreach (var field in _fields.Where(f => f.FieldType == FieldType.Map || f.FieldType == FieldType.Key))
+            foreach (var field in _fields.Where(f => f.FieldType == FieldType.Map || includeKeys && f.FieldType == FieldType.Key))
             {
                 command.AddParameter(field.ColumnName, field.DbType, field.PropertyInfo.GetValue(entity));
             }
@@ -224,9 +278,9 @@ namespace LScape.Data.Mapping
         /// <param name="command">The command to add parameters to</param>
         /// <param name="entity">The entity to get the data from</param>
         /// <param name="properties">The properties to add</param>
-        public void Parameters(IDbCommand command, T entity, params Expression<Func<T, object>>[] properties)
+        public void AddParameters(IDbCommand command, T entity, params Expression<Func<T, object>>[] properties)
         {
-            Parameters(command, entity, properties.Select(PropertyName).ToArray());
+            AddParameters(command, entity, properties.Select(PropertyName).ToArray());
         }
 
         /// <summary>
@@ -235,7 +289,7 @@ namespace LScape.Data.Mapping
         /// <param name="command">The command to add parameters to</param>
         /// <param name="entity">The entity to get the data from</param>
         /// <param name="properties">The names of the properties to add</param>
-        public void Parameters(IDbCommand command, T entity, params string[] properties)
+        public void AddParameters(IDbCommand command, T entity, params string[] properties)
         {
             foreach (var field in _fields.Where(f => properties.Contains(f.PropertyName)))
             {
@@ -243,6 +297,44 @@ namespace LScape.Data.Mapping
             }
         }
 
+        /// <summary>
+        /// Adds the key parameters to a command
+        /// </summary>
+        /// <param name="command">The command to add parameters to</param>
+        /// <param name="entity">The entity to get the values form</param>
+        public void AddKeyParameters(IDbCommand command, T entity)
+        {
+            foreach (var field in _fields.Where(f => f.FieldType == FieldType.Key))
+            {
+                command.AddParameter(field.ColumnName, field.DbType, field.PropertyInfo.GetValue(entity));
+            }
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Gets the key value for an entity
+        /// </summary>
+        /// <param name="entity">The entity to get the key value for</param>
+        public object KeyValue(T entity)
+        {
+            var field = _fields.FirstOrDefault(f => f.FieldType == FieldType.Key)?.PropertyInfo;
+            return field?.GetValue(entity);
+        }
+
+        /// <summary>
+        /// Gets the key value for an entity
+        /// </summary>
+        /// <typeparam name="TKey">The type the key value should be returned in</typeparam>
+        /// <param name="entity">The entity the key value is for</param>
+        public TKey KeyValue<TKey>(T entity)
+        {
+            var field = _fields.FirstOrDefault(f => f.FieldType == FieldType.Key)?.PropertyInfo;
+            if (field?.GetValue(entity) is TKey key)
+                return key;
+
+            return default(TKey);
+        }
 
         /// <summary>
         /// Checks to ses if a type is mappable

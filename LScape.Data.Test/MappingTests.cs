@@ -103,7 +103,7 @@ namespace LScape.Data.Test
             };
 
             var command = new SqlCommand();
-            map.Parameters(command, testUser);
+            map.AddParameters(command, testUser);
 
             Assert.AreEqual(7, command.Parameters.Count);
             foreach (SqlParameter parameter in command.Parameters)

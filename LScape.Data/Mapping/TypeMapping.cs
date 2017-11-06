@@ -5,26 +5,38 @@ using System.Reflection;
 
 namespace LScape.Data.Mapping
 {
-    internal static class TypeMapping
+    /// <summary>
+    /// Maps ClrTypes to DbTypes
+    /// </summary>
+    public static class TypeMapping
     {
+        /// <summary>
+        /// Gets the DbType that matches the clrType
+        /// </summary>
+        /// <param name="type">The clr type</param>
         public static DbType GetDbType(Type type)
         {
-            if (IsEnum(ref type))
-            {
-                type = Enum.GetUnderlyingType(type);
-            }
+            if (IsEnum(type, out var enumType))
+                type = enumType;
 
             return _typeMappings.TryGetValue(type, out var result) ? result : DbType.Object;
         }
 
-        public static bool IsEnum(ref Type type)
+        internal static bool IsEnum(Type type, out Type enumUnderlyingType)
         {
             if (type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>) && type.GenericTypeArguments[0].GetTypeInfo().IsEnum)
                 type = type.GenericTypeArguments[0];
 
-            return type.GetTypeInfo().IsEnum;
-        }
+            if (type.GetTypeInfo().IsEnum)
+            {
+                enumUnderlyingType = Enum.GetUnderlyingType(type);
+                return true;
+            }
 
+            enumUnderlyingType = null;
+            return false;
+        }
+        
         private static readonly Dictionary<Type, DbType> _typeMappings = new Dictionary<Type, DbType> {
             {typeof(bool), DbType.Boolean},
             {typeof(bool?), DbType.Boolean},

@@ -80,8 +80,8 @@ namespace LScape.Data
             if (value == DBNull.Value)
                 return null;
 
-            if (TypeMapping.IsEnum(ref type) && Enum.IsDefined(type, value))
-                value = Enum.ToObject(type, value);
+            if (TypeMapping.IsEnum(type, out var enumType) && Enum.IsDefined(enumType, value))
+                value = Enum.ToObject(enumType, value);
 
             return value;
         }
