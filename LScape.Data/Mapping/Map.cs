@@ -42,50 +42,35 @@ namespace LScape.Data.Mapping
             MapProperties(type, configuration);
         }
 
-        /// <inheritdoc />
-        public Type ClrType => typeof(T);
-
         /// <inheritdoc/>
         public string TableName { get; set; }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// The fields of the map
+        /// </summary>
         public IEnumerable<Field> Fields => _fields;
 
         #region Sql String Parts
 
-        /// <summary>
-        /// Select column list for use in a sql string
-        /// </summary>
+        /// <inheritdoc/>
         public string SelectColumnList => _selectColumnList ?? (_selectColumnList = string.Join(", ", _fields.Where(f => f.FieldType != FieldType.Ignore).Select(f => $"[{f.ColumnName}]")));
 
-        /// <summary>
-        /// Selects column list with an alias for use in a sql string
-        /// </summary>
-        /// <param name="alias">THe alias to use</param>
+        /// <inheritdoc/>
         public string SelectColumnWithAlias(string alias)
         {
             return string.Join(", ", _fields.Where(f => f.FieldType != FieldType.Ignore).Select(f => $"{alias}.[{f.ColumnName}]"));
         }
 
-        /// <summary>
-        /// Insert column list for use in an insert sql string
-        /// </summary>
+        /// <inheritdoc/>
         public string InsertColumnList => _insertColumnList ?? (_insertColumnList = string.Join(", ", _fields.Where(p => p.FieldType == FieldType.Map).Select(p => $"[{p.ColumnName}]")));
 
-        /// <summary>
-        /// Insert parameter list for use in a sql string
-        /// </summary>
+        /// <inheritdoc/>
         public string InsertParameterList => _insertParameterList ?? (_insertParameterList = string.Join(", ", _fields.Where(f => f.FieldType == FieldType.Map).Select(f => $"@{f.ColumnName}")));
 
-        /// <summary>
-        /// Update set string for use in a sql string
-        /// </summary>
+        /// <inheritdoc/>
         public string UpdateSetString => _updateSetString ?? (_updateSetString = string.Join(", ", _fields.Where(f => f.FieldType == FieldType.Map).Select(f => $"[{f.ColumnName}] = @{f.ColumnName}")));
 
-        /// <summary>
-        /// Returns the key name for the map
-        /// </summary>
-        /// <remarks>If there are multiple keys only returns the first one</remarks>
+        /// <inheritdoc/>
         public string KeyName => _keyName ?? (_keyName = _fields.First(f => f.FieldType == FieldType.Key).ColumnName);
 
         #endregion
@@ -254,6 +239,16 @@ namespace LScape.Data.Mapping
             return items;
         }
 
+        object IMap.Create(IDataReader reader)
+        {
+            return Create(reader);
+        }
+
+        IEnumerable<object> IMap.CreateEnumerable(IDataReader reader)
+        {
+            return CreateEnumerable(reader);
+        }
+
         #endregion
 
         #region Parameters
@@ -308,6 +303,33 @@ namespace LScape.Data.Mapping
             {
                 command.AddParameter(field.ColumnName, field.DbType, field.PropertyInfo.GetValue(entity));
             }
+        }
+
+        /// <inheritdoc />
+        public void AddParameters(IDbCommand command, object entity, bool includeKeys = false)
+        {
+            if(entity is T cast)
+                AddParameters(command, cast, includeKeys);
+            else
+                throw new ArgumentException("entity is of the incorrect type for this map", nameof(entity));
+        }
+
+        /// <inheritdoc />
+        public void AddParameters(IDbCommand command, object entity, params string[] properties)
+        {
+            if (entity is T cast)
+                AddParameters(command, cast, properties);
+            else
+                throw new ArgumentException("entity is of the incorrect type for this map", nameof(entity));
+        }
+
+        /// <inheritdoc />
+        public void AddKeyParameters(IDbCommand command, object entity)
+        {
+            if (entity is T cast)
+                AddKeyParameters(command, cast);
+            else
+                throw new ArgumentException("entity is of the incorrect type for this map", nameof(entity));
         }
 
         #endregion

@@ -132,6 +132,7 @@ namespace LScape.Data.Repositories
                 }
             }
         }
+
         /// <summary>
         /// Creates a command that selects a single entity from the repository
         /// </summary>

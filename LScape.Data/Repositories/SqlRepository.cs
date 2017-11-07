@@ -55,7 +55,7 @@ namespace LScape.Data.Repositories
         {
             var command = connection.CreateCommand();
             command.CommandText = text;
-            command.CommandType = CommandType.StoredProcedure;
+            command.CommandType = CommandType.Text;
             return command;
         }
     }
