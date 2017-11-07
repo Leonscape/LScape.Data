@@ -51,7 +51,13 @@ namespace LScape.Data.Repositories
             return Command(connection, $"DELETE FROM [{Map.TableName}] WHERE [{Map.KeyName}] = @{Map.KeyName}");
         }
 
-        private static IDbCommand Command(IDbConnection connection, string text)
+        /// <summary>
+        /// Creates a sql text command
+        /// </summary>
+        /// <param name="connection">The connection to created the command on</param>
+        /// <param name="text">The text of the command</param>
+        /// <returns></returns>
+        protected static IDbCommand Command(IDbConnection connection, string text)
         {
             var command = connection.CreateCommand();
             command.CommandText = text;
