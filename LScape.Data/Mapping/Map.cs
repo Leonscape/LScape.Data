@@ -14,12 +14,13 @@ namespace LScape.Data.Mapping
     /// </summary>
     public class Map<T> : IMap where T : class, new()
     {
-        private readonly List<Field> _fields = new List<Field>();
+        private readonly List<IField> _fields = new List<IField>();
         private string _selectColumnList;
         private string _insertColumnList;
         private string _insertParameterList;
         private string _updateSetString;
         private string _keyName;
+        private string _keyWhere;
 
         /// <summary>
         /// Constructs a new Map for a type
@@ -50,7 +51,7 @@ namespace LScape.Data.Mapping
         /// <summary>
         /// The fields of the map
         /// </summary>
-        public IEnumerable<Field> Fields => _fields;
+        public IEnumerable<IField> Fields => _fields;
 
         #region Sql String Parts
 
@@ -74,6 +75,9 @@ namespace LScape.Data.Mapping
 
         /// <inheritdoc/>
         public string KeyName => _keyName ?? (_keyName = _fields.First(f => f.FieldType == FieldType.Key).ColumnName);
+
+        /// <inheritdoc/>
+        public string KeyWhere => _keyWhere ?? (_keyWhere = string.Join(", ", _fields.Where(f => f.FieldType == FieldType.Key).Select(f => $"[{f.ColumnName}] = @{f.ColumnName}")));
 
         #endregion
 
@@ -176,7 +180,7 @@ namespace LScape.Data.Mapping
         /// Can be called multiple times, any properties not given
         /// a manual mapping will be automatically mapped
         /// </remarks>
-        public Map<T> Mapping(params Field[] fields)
+        public Map<T> Mapping(params IField[] fields)
         {
             foreach (var newField in fields)
             {
@@ -204,8 +208,8 @@ namespace LScape.Data.Mapping
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var name = reader.GetName(i);
-                var field = _fields.FirstOrDefault(f => f.ColumnName == name)?.PropertyInfo;
-                field?.SetValue(result, reader.GetValue(i, field.PropertyType));
+                var field = _fields.FirstOrDefault(f => f.ColumnName == name);
+                field?.SetPropertyValue(result, reader);
             }
 
             return result;
@@ -218,15 +222,7 @@ namespace LScape.Data.Mapping
         /// <returns></returns>
         public IEnumerable<T> CreateEnumerable(IDataReader reader)
         {
-            Action<T, IDataReader> readProps = null;
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                var name = reader.GetName(i);
-                var field = _fields.FirstOrDefault(f => f.ColumnName == name);
-                if (field != null)
-                    readProps += (e, r) => { field.PropertyInfo.SetValue(e, r.GetValue(field.ColumnName, field.PropertyInfo.PropertyType)); };
-            }
-            
+            var readProps = ReadProperties(reader);
             var items = new List<T>();
             if (readProps != null)
             {
@@ -247,15 +243,7 @@ namespace LScape.Data.Mapping
         /// <param name="reader">The reader to get the objects from</param>
         public async Task<IEnumerable<T>> CreateEnumerableAsync(IDataReader reader)
         {
-            Action<T, IDataReader> readProps = null;
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                var name = reader.GetName(i);
-                var field = _fields.FirstOrDefault(f => f.ColumnName == name);
-                if (field != null)
-                    readProps += (e, r) => { field.PropertyInfo.SetValue(e, r.GetValue(field.ColumnName, field.PropertyInfo.PropertyType)); };
-            }
-
+            var readProps = ReadProperties(reader);
             var items = new List<T>();
             if (readProps != null)
             {
@@ -298,9 +286,7 @@ namespace LScape.Data.Mapping
         public void AddParameters(IDbCommand command, T entity, bool includeKeys = false)
         {
             foreach (var field in _fields.Where(f => f.FieldType == FieldType.Map || includeKeys && f.FieldType == FieldType.Key))
-            {
-                command.AddParameter(field.ColumnName, field.DbType, field.PropertyInfo.GetValue(entity));
-            }
+                field.AddParameter(command, entity);
         }
 
         /// <summary>
@@ -323,9 +309,7 @@ namespace LScape.Data.Mapping
         public void AddParameters(IDbCommand command, T entity, params string[] properties)
         {
             foreach (var field in _fields.Where(f => properties.Contains(f.PropertyName)))
-            {
-                command.AddParameter(field.ColumnName, field.DbType, field.PropertyInfo.GetValue(entity));
-            }
+                field.AddParameter(command, entity);
         }
 
         /// <summary>
@@ -336,9 +320,7 @@ namespace LScape.Data.Mapping
         public void AddKeyParameters(IDbCommand command, T entity)
         {
             foreach (var field in _fields.Where(f => f.FieldType == FieldType.Key))
-            {
-                command.AddParameter(field.ColumnName, field.DbType, field.PropertyInfo.GetValue(entity));
-            }
+                field.AddParameter(command, entity);
         }
 
         /// <inheritdoc />
@@ -376,8 +358,8 @@ namespace LScape.Data.Mapping
         /// <param name="entity">The entity to get the key value for</param>
         public object KeyValue(T entity)
         {
-            var field = _fields.FirstOrDefault(f => f.FieldType == FieldType.Key)?.PropertyInfo;
-            return field?.GetValue(entity);
+            var field = _fields.FirstOrDefault(f => f.FieldType == FieldType.Key);
+            return field?.GetPropertyValue(entity);
         }
 
         /// <summary>
@@ -387,43 +369,23 @@ namespace LScape.Data.Mapping
         /// <param name="entity">The entity the key value is for</param>
         public TKey KeyValue<TKey>(T entity)
         {
-            var field = _fields.FirstOrDefault(f => f.FieldType == FieldType.Key)?.PropertyInfo;
-            if (field?.GetValue(entity) is TKey key)
+            var field = _fields.FirstOrDefault(f => f.FieldType == FieldType.Key);
+            if (field?.GetPropertyValue(entity) is TKey key)
                 return key;
 
             return default(TKey);
-        }
-
-        /// <summary>
-        /// Checks to ses if a type is mappable
-        /// </summary>
-        /// <param name="type">The type to check</param>
-        protected virtual bool IsMappableType(Type type)
-        {
-            if (type.GetTypeInfo().IsValueType || type == typeof(string))
-                return true;
-
-            if (type.IsArray && type.GetElementType().GetTypeInfo().IsValueType)
-                return true;
-
-            return false;
         }
 
         private void MapProperties(Type type, MapperConfiguration configuration)
         {
             var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
 
+            var fieldType = typeof(Field<>);
             foreach (var property in properties)
             {
                 var colAttrib = property.GetCustomAttribute<ColumnAttribute>();
-                var field = new Field
-                {
-                    PropertyInfo = property,
-                    DbType = TypeMapping.GetDbType(property.PropertyType),
-                    PropertyName = property.Name,
-                    ColumnName = colAttrib != null ? colAttrib.ColumnName : configuration.ColumnName(property.Name),
-                    FieldType = IsMappableType(property.PropertyType) ? FieldType.Map : FieldType.Ignore
-                };
+                var field = (IField)Activator.CreateInstance(fieldType.MakeGenericType(property.PropertyType), property);
+                field.ColumnName = colAttrib != null ? colAttrib.ColumnName : configuration.ColumnName(property.Name);
 
                 if (property.GetCustomAttribute<KeyAttribute>() != null || configuration.KeyMatch != null && configuration.KeyMatch(property.Name, property.PropertyType))
                     field.FieldType = FieldType.Key;
@@ -436,7 +398,7 @@ namespace LScape.Data.Mapping
             }
         }
 
-        private string PropertyName(Expression<Func<T, object>> property)
+        private static string PropertyName(Expression<Func<T, object>> property)
         {
             string name = null;
             if (property.Body is MemberExpression memberBody)
@@ -445,6 +407,20 @@ namespace LScape.Data.Mapping
                 name = ((MemberExpression)unaryBody.Operand).Member.Name;
 
             return name;
+        }
+
+        private Action<T, IDataReader> ReadProperties(IDataReader reader)
+        {
+            Action<T, IDataReader> readProps = null;
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                var name = reader.GetName(i);
+                var field = _fields.FirstOrDefault(f => f.ColumnName == name);
+                if (field != null)
+                    readProps += field.SetPropertyValue;
+            }
+
+            return readProps;
         }
 
         private void ClearStrings()

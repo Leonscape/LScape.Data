@@ -36,7 +36,18 @@ namespace LScape.Data.Mapping
             enumType = null;
             return false;
         }
-        
+
+        internal static bool IsMappableType(Type type)
+        {
+            if (type.GetTypeInfo().IsValueType || type == typeof(string))
+                return true;
+
+            if (type.IsArray && type.GetElementType().GetTypeInfo().IsValueType)
+                return true;
+
+            return false;
+        }
+
         private static readonly Dictionary<Type, DbType> _typeMappings = new Dictionary<Type, DbType> {
             {typeof(bool), DbType.Boolean},
             {typeof(bool?), DbType.Boolean},

@@ -2,6 +2,7 @@
 using System;
 using System.Data;
 using System.Data.Common;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace LScape.Data.Extensions
@@ -36,6 +37,25 @@ namespace LScape.Data.Extensions
             parameter.Value = value ?? DBNull.Value;
             parameter.DbType = type;
             command.Parameters.Add(parameter);
+        }
+
+        /// <summary>
+        /// Adds parameters from an anonymous type
+        /// </summary>
+        /// <param name="command">The command to add the properties to</param>
+        /// <param name="parameters">The anonymous object that contains the parameters</param>
+        public static void AddParameters(this IDbCommand command, dynamic parameters)
+        {
+            var paramType = ((object) parameters).GetType();
+            foreach (var property in paramType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = property.Name;
+                parameter.Value = property.GetValue(parameters) ?? DBNull.Value;
+                parameter.DbType = TypeMapping.GetDbType(property.PropertyType);
+                command.Parameters.Add(parameter);
+            }
+
         }
 
         /// <summary>

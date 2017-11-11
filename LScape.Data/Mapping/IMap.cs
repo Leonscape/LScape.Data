@@ -48,6 +48,12 @@ namespace LScape.Data.Mapping
         /// <remarks>If there are multiple keys only returns the first one</remarks>
         string KeyName { get; }
 
+        /// <summary>
+        /// Returns key parts for a where statement
+        /// </summary>
+        /// <remarks>Returns multi key parts for a where statement</remarks>
+        string KeyWhere { get; }
+
         #endregion
 
         #region object creation
@@ -98,7 +104,7 @@ namespace LScape.Data.Mapping
         /// <param name="command">The command to add parameters to</param>
         /// <param name="entity">The entity to get the values form</param>
         void AddKeyParameters(IDbCommand command, object entity);
-
+        
         #endregion
     }
 }
