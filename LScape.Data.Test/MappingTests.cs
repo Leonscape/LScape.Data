@@ -17,7 +17,7 @@ namespace LScape.Data.Test
         {
             var map = new Map<TestUser>();
             Assert.IsTrue(map.TableName == "TestUser");
-            Assert.AreEqual(9, map.Fields.Count());
+            Assert.AreEqual(10, map.Fields.Count());
 
             foreach (var field in map.Fields)
             {
@@ -41,7 +41,7 @@ namespace LScape.Data.Test
 
             var map = new Map<TestUser>(config);
             Assert.IsTrue(map.TableName == "TestUser");
-            Assert.AreEqual(9, map.Fields.Count());
+            Assert.AreEqual(10, map.Fields.Count());
 
             foreach (var field in map.Fields)
             {
@@ -49,6 +49,8 @@ namespace LScape.Data.Test
                     Assert.AreEqual("first_name", field.ColumnName);
                 else if(field.PropertyName == "LastName")
                     Assert.AreEqual("last_name", field.ColumnName);
+                else if(field.PropertyName == "TestEnum")
+                    Assert.AreEqual("test_enum", field.ColumnName);
                 else
                     Assert.AreEqual(field.PropertyName.ToLower(), field.ColumnName, $"On field {field.PropertyName}");
 
@@ -73,11 +75,11 @@ namespace LScape.Data.Test
             };
             var map = new Map<TestUser>(config);
 
-            Assert.AreEqual("[id], [email], [first_name], [last_name], [password], [salt], [created], [deleted]", map.SelectColumnList);
-            Assert.AreEqual("a.[id], a.[email], a.[first_name], a.[last_name], a.[password], a.[salt], a.[created], a.[deleted]", map.SelectColumnWithAlias("a"));
-            Assert.AreEqual("[email], [first_name], [last_name], [password], [salt], [created]", map.InsertColumnList);
-            Assert.AreEqual("@email, @first_name, @last_name, @password, @salt, @created", map.InsertParameterList);
-            Assert.AreEqual("[email] = @email, [first_name] = @first_name, [last_name] = @last_name, [password] = @password, [salt] = @salt, [created] = @created", map.UpdateSetString);
+            Assert.AreEqual("[id], [email], [first_name], [last_name], [password], [salt], [created], [deleted], [test_enum]", map.SelectColumnList);
+            Assert.AreEqual("a.[id], a.[email], a.[first_name], a.[last_name], a.[password], a.[salt], a.[created], a.[deleted], a.[test_enum]", map.SelectColumnWithAlias("a"));
+            Assert.AreEqual("[email], [first_name], [last_name], [password], [salt], [created], [test_enum]", map.InsertColumnList);
+            Assert.AreEqual("@email, @first_name, @last_name, @password, @salt, @created, @test_enum", map.InsertParameterList);
+            Assert.AreEqual("[email] = @email, [first_name] = @first_name, [last_name] = @last_name, [password] = @password, [salt] = @salt, [created] = @created, [test_enum] = @test_enum", map.UpdateSetString);
         }
 
         [TestMethod]
@@ -99,13 +101,14 @@ namespace LScape.Data.Test
                 LastName = "TestLast",
                 Password = new byte[] {0, 4, 5, 6},
                 Salt = new byte[] {0, 1, 2, 3},
-                Created = created
+                Created = created,
+                TestEnum = TestEnum.Test2
             };
 
             var command = new SqlCommand();
-            map.AddParameters(command, testUser);
+            map.AddParameters(command, testUser, true);
 
-            Assert.AreEqual(7, command.Parameters.Count);
+            Assert.AreEqual(8, command.Parameters.Count);
             foreach (SqlParameter parameter in command.Parameters)
             {
                 if (parameter.ParameterName == "id")
@@ -149,6 +152,12 @@ namespace LScape.Data.Test
                     Assert.AreEqual(DbType.DateTime2, parameter.DbType);
                     Assert.AreEqual(SqlDbType.DateTime2, parameter.SqlDbType);
                     Assert.AreEqual(created, parameter.Value);
+                }
+                else if (parameter.ParameterName == "test_enum")
+                {
+                    Assert.AreEqual(DbType.Byte, parameter.DbType);
+                    Assert.AreEqual(SqlDbType.TinyInt, parameter.SqlDbType);
+                    Assert.AreEqual(TestEnum.Test2, parameter.Value);
                 }
                 else
                     Assert.Fail($"Parameter {parameter.ParameterName} should not be in the list");

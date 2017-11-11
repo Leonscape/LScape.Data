@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Data;
+using System.Threading.Tasks;
 
 namespace LScape.Data.Mapping
 {
@@ -56,13 +57,20 @@ namespace LScape.Data.Mapping
         /// </summary>
         /// <param name="reader">The reader to get the object from</param>
         object Create(IDataReader reader);
-
+        
         /// <summary>
         /// Creates an enumerable of objects for the data reader which are mapped
         /// </summary>
         /// <param name="reader">The reader to get the objects from</param>
         /// <returns></returns>
         IEnumerable<object> CreateEnumerable(IDataReader reader);
+
+        /// <summary>
+        /// Creates an enumerable of objects for the data reader which are mapped
+        /// </summary>
+        /// <param name="reader">The reader to get the objects from</param>
+        /// <returns></returns>
+        Task<IEnumerable<object>> CreateEnumerableAsync(IDataReader reader);
 
         #endregion
 

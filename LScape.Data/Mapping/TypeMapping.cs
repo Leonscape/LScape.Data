@@ -22,18 +22,18 @@ namespace LScape.Data.Mapping
             return _typeMappings.TryGetValue(type, out var result) ? result : DbType.Object;
         }
 
-        internal static bool IsEnum(Type type, out Type enumUnderlyingType)
+        internal static bool IsEnum(Type type, out Type enumType)
         {
             if (type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>) && type.GenericTypeArguments[0].GetTypeInfo().IsEnum)
                 type = type.GenericTypeArguments[0];
 
             if (type.GetTypeInfo().IsEnum)
             {
-                enumUnderlyingType = Enum.GetUnderlyingType(type);
+                enumType = type;
                 return true;
             }
 
-            enumUnderlyingType = null;
+            enumType = null;
             return false;
         }
         

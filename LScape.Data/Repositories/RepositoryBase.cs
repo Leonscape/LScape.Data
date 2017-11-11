@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Threading.Tasks;
+using LScape.Data.Extensions;
 
 namespace LScape.Data.Repositories
 {
@@ -35,19 +37,27 @@ namespace LScape.Data.Repositories
         /// <inheritdoc/>
         public virtual T Find(TKey key)
         {
-            using (var conn = Provider.Connection)
+            using (var conn = Provider.Connection())
             {
                 using (var command = SelectCommand(conn))
                 {
                     command.AddParameter(Map.KeyName, TypeMapping.GetDbType(typeof(TKey)), key);
                     using (var reader = command.ExecuteReader())
-                    {
-                        if (reader.Read())
-                            return Map.Create(reader);
+                        return reader.Read() ? Map.Create(reader) : null;
+                }
+            }
+        }
 
-                        return null;
-                    }
-
+        /// <inheritdoc/>
+        public virtual async Task<T> FindAsync(TKey key)
+        {
+            using (var conn = await Provider.ConnectionAsync())
+            {
+                using (var command = SelectCommand(conn))
+                {
+                    command.AddParameter(Map.KeyName, TypeMapping.GetDbType(typeof(TKey)), key);
+                    using (var reader = await command.ExecuteReaderAsync())
+                        return await reader.ReadAsync() ? Map.Create(reader) : null;
                 }
             }
         }
@@ -55,7 +65,7 @@ namespace LScape.Data.Repositories
         /// <inheritdoc/>
         public virtual int Count()
         {
-            using (var conn = Provider.Connection)
+            using (var conn = Provider.Connection())
             {
                 using (var command = CountCommand(conn))
                 {
@@ -65,9 +75,21 @@ namespace LScape.Data.Repositories
         }
 
         /// <inheritdoc/>
+        public virtual async Task<int> CountAsync()
+        {
+            using (var conn = await Provider.ConnectionAsync())
+            {
+                using (var command = CountCommand(conn))
+                {
+                    return (int)await command.ExecuteScalarAsync();
+                }
+            }
+        }
+
+        /// <inheritdoc/>
         public virtual IEnumerable<T> All()
         {
-            using (var conn = Provider.Connection)
+            using (var conn = Provider.Connection())
             {
                 using (var command = AllCommand(conn))
                 {
@@ -80,9 +102,24 @@ namespace LScape.Data.Repositories
         }
 
         /// <inheritdoc/>
+        public virtual async Task<IEnumerable<T>> AllAsync()
+        {
+            using (var conn = await Provider.ConnectionAsync())
+            {
+                using (var command = AllCommand(conn))
+                {
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        return await Map.CreateEnumerableAsync(reader);
+                    }
+                }
+            }
+        }
+
+        /// <inheritdoc/>
         public virtual T Save(T entity)
         {
-            using (var conn = Provider.Connection)
+            using (var conn = Provider.Connection())
             {
                 IDbCommand command;
                 if (Map.KeyValue<TKey>(entity).Equals(default(TKey)))
@@ -115,20 +152,75 @@ namespace LScape.Data.Repositories
         }
 
         /// <inheritdoc/>
+        public virtual async Task<T> SaveAsync(T entity)
+        {
+            using (var conn = await Provider.ConnectionAsync())
+            {
+                IDbCommand command;
+                if (Map.KeyValue<TKey>(entity).Equals(default(TKey)))
+                {
+                    command = InsertCommand(conn);
+                    Map.AddParameters(command, entity);
+                }
+                else
+                {
+                    command = UpdateCommand(conn);
+                    Map.AddParameters(command, entity, true);
+                }
+
+                try
+                {
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                            return Map.Create(reader);
+
+                        throw new ArgumentException($"Error while saving the entity of type {typeof(T)}", nameof(entity));
+                    }
+                }
+                finally
+                {
+                    command.Dispose();
+                }
+
+            }
+        }
+
+
+        /// <inheritdoc/>
         public virtual void Delete(T entity)
         {
             Delete(Map.KeyValue<TKey>(entity));
         }
 
         /// <inheritdoc/>
+        public virtual async Task DeleteAsync(T entity)
+        {
+            await DeleteAsync(Map.KeyValue<TKey>(entity));
+        }
+
+        /// <inheritdoc/>
         public virtual void Delete(TKey key)
         {
-            using (var conn = Provider.Connection)
+            using (var conn = Provider.Connection())
             {
                 using (var command = DeleteCommand(conn))
                 {
                     command.AddParameter(Map.KeyName, TypeMapping.GetDbType(typeof(TKey)), key);
                     command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public virtual async Task DeleteAsync(TKey key)
+        {
+            using (var conn = await Provider.ConnectionAsync())
+            {
+                using (var command = DeleteCommand(conn))
+                {
+                    command.AddParameter(Map.KeyName, TypeMapping.GetDbType(typeof(TKey)), key);
+                    await command.ExecuteNonQueryAsync();
                 }
             }
         }

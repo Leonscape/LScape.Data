@@ -1,9 +1,11 @@
-﻿using System;
+﻿using LScape.Data.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace LScape.Data.Mapping
 {
@@ -239,6 +241,35 @@ namespace LScape.Data.Mapping
             return items;
         }
 
+        /// <summary>
+        /// Creates an enumerable of objects for the data reader which are mapped
+        /// </summary>
+        /// <param name="reader">The reader to get the objects from</param>
+        public async Task<IEnumerable<T>> CreateEnumerableAsync(IDataReader reader)
+        {
+            Action<T, IDataReader> readProps = null;
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                var name = reader.GetName(i);
+                var field = _fields.FirstOrDefault(f => f.ColumnName == name);
+                if (field != null)
+                    readProps += (e, r) => { field.PropertyInfo.SetValue(e, r.GetValue(field.ColumnName, field.PropertyInfo.PropertyType)); };
+            }
+
+            var items = new List<T>();
+            if (readProps != null)
+            {
+                while (await reader.ReadAsync())
+                {
+                    var entity = new T();
+                    readProps(entity, reader);
+                    items.Add(entity);
+                }
+            }
+
+            return items;
+        }
+
         object IMap.Create(IDataReader reader)
         {
             return Create(reader);
@@ -247,6 +278,11 @@ namespace LScape.Data.Mapping
         IEnumerable<object> IMap.CreateEnumerable(IDataReader reader)
         {
             return CreateEnumerable(reader);
+        }
+
+        async Task<IEnumerable<object>> IMap.CreateEnumerableAsync(IDataReader reader)
+        {
+            return await CreateEnumerableAsync(reader);
         }
 
         #endregion

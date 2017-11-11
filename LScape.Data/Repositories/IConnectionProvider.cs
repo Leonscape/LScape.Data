@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Threading.Tasks;
 
 namespace LScape.Data.Repositories
 {
@@ -10,6 +11,11 @@ namespace LScape.Data.Repositories
         /// <summary>
         /// The DbConnection
         /// </summary>
-        IDbConnection Connection { get; }
+        IDbConnection Connection();
+
+        /// <summary>
+        /// The dbConnection created async
+        /// </summary>
+        Task<IDbConnection> ConnectionAsync();
     }
 }

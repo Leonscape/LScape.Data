@@ -1,39 +1,27 @@
 ﻿using LScape.Data.Mapping;
 using System;
 using System.Data;
+using System.Data.Common;
+using System.Threading.Tasks;
 
-namespace LScape.Data
+namespace LScape.Data.Extensions
 {
     /// <summary>
-    /// Extension methods for reader and writing to a database
+    /// Extension methods for IDataReader
     /// </summary>
-    public static class Extensions
+    public static class DataReaderExtensions
     {
         /// <summary>
-        /// Add a parameter to a command
+        /// Performs async reader on a datareader
         /// </summary>
-        /// <param name="command">The command to add the parameter to</param>
-        /// <param name="name">The name of the parameter</param>
-        /// <param name="value">The value of the parameter</param>
-        public static void AddParameter(this IDbCommand command, string name, object value)
+        /// <param name="reader">The reader to perform async read on</param>
+        /// <returns></returns>
+        public static async Task<bool> ReadAsync(this IDataReader reader)
         {
-            AddParameter(command, name, TypeMapping.GetDbType(value.GetType()), value);
-        }
+            if (reader is DbDataReader dbReader)
+                return await dbReader.ReadAsync();
 
-        /// <summary>
-        /// Add a parameter to a command
-        /// </summary>
-        /// <param name="command">The command to add the parameter to</param>
-        /// <param name="name">The name of the parameter</param>
-        /// <param name="type">The type of the parameter</param>
-        /// <param name="value">The value of the parameter</param>
-        public static void AddParameter(this IDbCommand command, string name, DbType type, object value)
-        {
-            var parameter = command.CreateParameter();
-            parameter.ParameterName = name;
-            parameter.Value = value ?? DBNull.Value;
-            parameter.DbType = type;
-            command.Parameters.Add(parameter);
+            return await Task.Run(() => reader.Read());
         }
 
         /// <summary>

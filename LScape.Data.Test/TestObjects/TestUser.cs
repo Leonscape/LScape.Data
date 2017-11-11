@@ -13,6 +13,7 @@ namespace LScape.Data.Test.TestObjects
         public byte[] Salt { get; set; }
         public DateTime Created { get; set; }
         public DateTime? Deleted { get; set; }
+        public TestEnum TestEnum { get; set; }
 
         public List<TestGroup> Groups { get; set; }
     }
