@@ -17,7 +17,7 @@ namespace LScape.Data.Mapping
         public static DbType GetDbType(Type type)
         {
             if (IsEnum(type, out var enumType))
-                type = enumType;
+                type = enumType.GetEnumUnderlyingType();
 
             return _typeMappings.TryGetValue(type, out var result) ? result : DbType.Object;
         }

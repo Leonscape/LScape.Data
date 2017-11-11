@@ -10,9 +10,9 @@
     <Copyright>Leon Penninton 2017</Copyright>
     <PackageTags>database orm mapping poco</PackageTags>
     <SignAssembly>false</SignAssembly>
-    <AssemblyVersion>1.1.1.8</AssemblyVersion>
-    <FileVersion>1.1.1.8</FileVersion>
-    <Version>1.1.1</Version>
+    <AssemblyVersion>1.1.2.9</AssemblyVersion>
+    <FileVersion>1.1.2.9</FileVersion>
+    <Version>1.1.2</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
