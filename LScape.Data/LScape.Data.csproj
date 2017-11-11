@@ -10,9 +10,9 @@
     <Copyright>Leon Penninton 2017</Copyright>
     <PackageTags>database orm mapping poco</PackageTags>
     <SignAssembly>false</SignAssembly>
-    <AssemblyVersion>1.1.1.7</AssemblyVersion>
-    <FileVersion>1.1.1.7</FileVersion>
-    <Version>1.1.1-Beta2</Version>
+    <AssemblyVersion>1.1.1.8</AssemblyVersion>
+    <FileVersion>1.1.1.8</FileVersion>
+    <Version>1.1.1</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -22,9 +22,5 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DocumentationFile>bin\Release\netstandard2.0\LScape.Data.xml</DocumentationFile>
   </PropertyGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy $(TargetDir)..\*.nupkg F:\Source\NuGetRepository" />
-  </Target>
 
 </Project>
