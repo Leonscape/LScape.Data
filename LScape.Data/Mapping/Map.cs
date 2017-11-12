@@ -22,6 +22,12 @@ namespace LScape.Data.Mapping
         private string _keyName;
         private string _keyWhere;
 
+        private string _selectStatement;
+        private string _countStatement;
+        private string _insertStatement;
+        private string _updateStatement;
+        private string _deleteStatement;
+
         /// <summary>
         /// Constructs a new Map for a type
         /// Using the configuration in the mapper
@@ -77,7 +83,46 @@ namespace LScape.Data.Mapping
         public string KeyName => _keyName ?? (_keyName = _fields.First(f => f.FieldType == FieldType.Key).ColumnName);
 
         /// <inheritdoc/>
-        public string KeyWhere => _keyWhere ?? (_keyWhere = string.Join(", ", _fields.Where(f => f.FieldType == FieldType.Key).Select(f => $"[{f.ColumnName}] = @{f.ColumnName}")));
+        public string KeyWhere => _keyWhere ?? (_keyWhere = string.Join(" AND ", _fields.Where(f => f.FieldType == FieldType.Key).Select(f => $"[{f.ColumnName}] = @{f.ColumnName}")));
+
+        #endregion
+
+        #region Sql Statements
+
+        /// <inheritdoc/>
+        public string SelectStatement
+        {
+            get => _selectStatement ?? (_selectStatement = $"SELECT {SelectColumnList} FROM [{TableName}]");
+            set => _selectStatement = value;
+        }
+
+        /// <inheritdoc/>
+        public string CountStatement
+        {
+            get => _countStatement ?? (_countStatement = $"SELECT COUNT(*) FROM [{TableName}]");
+            set => _countStatement = value;
+        }
+
+        /// <inheritdoc/>
+        public string InsertStatement
+        {
+            get => _insertStatement ?? (_insertStatement = $"INSERT INTO [{TableName}] ({InsertColumnList}) OUTPUT INSERTED.* VALUES ({InsertParameterList})");
+            set => _insertStatement = value;
+        }
+
+        /// <inheritdoc/>
+        public string UpdateStatement
+        {
+            get => _updateStatement ?? (_updateStatement = $"UPDATE [{TableName}] SET {UpdateSetString} OUTPUT INSERTED.* WHERE {KeyWhere}");
+            set => _updateStatement = value;
+        }
+
+        /// <inheritdoc/>
+        public string DeleteStatement
+        {
+            get => _deleteStatement ?? (_deleteStatement = $"DELETE FROM [{TableName}] WHERE {KeyWhere}");
+            set => _deleteStatement = value;
+        }
 
         #endregion
 
@@ -112,6 +157,12 @@ namespace LScape.Data.Mapping
             return this;
         }
 
+        /// <inheritdoc/>
+        IMap IMap.Ignore(params string[] properties)
+        {
+            return Ignore(properties);
+        }
+
         /// <summary>
         /// The properties to set to calculated
         /// </summary>
@@ -141,6 +192,12 @@ namespace LScape.Data.Mapping
             return this;
         }
 
+        /// <inheritdoc/>
+        IMap IMap.Calculated(params string[] properties)
+        {
+            return Calculated(properties);
+        }
+
         /// <summary>
         /// The properties to set to Key
         /// </summary>
@@ -168,6 +225,28 @@ namespace LScape.Data.Mapping
                 field.FieldType = FieldType.Key;
 
             return this;
+        }
+
+        /// <inheritdoc/>
+        IMap IMap.Key(params string[] properties)
+        {
+            return Key(properties);
+        }
+
+        /// <summary>
+        /// Tells the map fluent configuration is complete,
+        /// and we can regenerate sql strings
+        /// </summary>
+        public Map<T> CompleteConfiguration()
+        {
+            ClearStrings();
+            return this;
+        }
+
+        /// <inheritdoc/>
+        IMap IMap.CompleteConfiguration()
+        {
+            return CompleteConfiguration();
         }
 
         #endregion
@@ -429,6 +508,14 @@ namespace LScape.Data.Mapping
             _insertColumnList = null;
             _insertParameterList = null;
             _updateSetString = null;
+            _keyName = null;
+            _keyWhere = null;
+
+            _selectStatement = null;
+            _countStatement = null;
+            _insertStatement = null;
+            _updateStatement = null;
+            _deleteStatement = null;
         }
     }
 }

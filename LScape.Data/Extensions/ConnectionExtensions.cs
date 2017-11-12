@@ -1,10 +1,7 @@
 ﻿using LScape.Data.Mapping;
-using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Dynamic;
-using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 
 namespace LScape.Data.Extensions
@@ -21,10 +18,15 @@ namespace LScape.Data.Extensions
         /// <param name="connection">The connection to query on</param>
         /// <param name="query">The query</param>
         /// <param name="parameters">Any parameters to the query</param>
-        public static T Query<T>(this IDbConnection connection, string query, dynamic parameters = null) where T : class, new()
+        public static T Query<T>(this IDbConnection connection, string query, object parameters = null) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            return Reader(connection, query, r => r.Read() ? map.Create(r) : null, (object)parameters);
+            using (var cmd = connection.TextCommand(query))
+            {
+                cmd.AddParameters(parameters);
+                using (var reader = cmd.ExecuteReader())
+                    return reader.Read() ? map.Create(reader) : null;
+            }
         }
         
         /// <summary>
@@ -34,10 +36,15 @@ namespace LScape.Data.Extensions
         /// <param name="connection">The connection to query on</param>
         /// <param name="query">The query</param>
         /// /// <param name="parameters">Any parameters to the query</param>
-        public static async Task<T> QueryAsync<T>(this IDbConnection connection, string query, dynamic parameters = null) where T : class, new()
+        public static async Task<T> QueryAsync<T>(this IDbConnection connection, string query, object parameters = null) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            return await ReaderAsync(connection, query, async r => await r.ReadAsync() ? map.Create(r) : null, (object)parameters);
+            using (var cmd = connection.TextCommand(query))
+            {
+                cmd.AddParameters(parameters);
+                using (var reader = await cmd.ExecuteReaderAsync())
+                    return await reader.ReadAsync() ? map.Create(reader) : null;
+            }
         }
 
         /// <summary>
@@ -47,10 +54,15 @@ namespace LScape.Data.Extensions
         /// <param name="connection">The connection to query on</param>
         /// <param name="query">The query</param>
         /// <param name="parameters">Any parameters to the query</param>
-        public static IEnumerable<T> QueryMany<T>(this IDbConnection connection, string query, dynamic parameters = null) where T : class, new()
+        public static IEnumerable<T> QueryMany<T>(this IDbConnection connection, string query, object parameters = null) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            return Reader(connection, query, r => map.CreateEnumerable(r), (object)parameters);
+            using (var cmd = connection.TextCommand(query))
+            {
+                cmd.AddParameters(parameters);
+                using (var reader = cmd.ExecuteReader())
+                    return map.CreateEnumerable(reader);
+            }
         }
 
         /// <summary>
@@ -60,14 +72,19 @@ namespace LScape.Data.Extensions
         /// <param name="connection">The connection to query on</param>
         /// <param name="query">The query</param>
         /// <param name="parameters">Any parameters to the query</param>
-        public static async Task<IEnumerable<T>> QueryManyAsync<T>(this IDbConnection connection, string query, dynamic parameters = null) where T : class, new()
+        public static async Task<IEnumerable<T>> QueryManyAsync<T>(this IDbConnection connection, string query, object parameters = null) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            return await ReaderAsync(connection, query, async r => await map.CreateEnumerableAsync(r), (object)parameters);
+            using (var cmd = connection.TextCommand(query))
+            {
+                cmd.AddParameters(parameters);
+                using (var reader = await cmd.ExecuteReaderAsync())
+                    return await map.CreateEnumerableAsync(reader);
+            }
         }
-
+        
         /// <summary>
-        /// Gets a specific object from the database with a key
+        /// Gets a specific object from the database that matches the condition, or if not found null
         /// </summary>
         /// <typeparam name="T">The type of object to get</typeparam>
         /// <param name="connection">The connection to quuery against</param>
@@ -76,11 +93,16 @@ namespace LScape.Data.Extensions
         {
             var map = Mapper.Map<T>();
             condition = CheckKey(condition, map.KeyName);
-            return Reader(connection, $"SELECT {map.SelectColumnList} FROM [{map.TableName}] WHERE {AddWhere(condition)}", r => r.Read() ? map.Create(r) : null, condition);
+            using (var cmd = connection.TextCommand(map.SelectStatement))
+            {
+                cmd.AddParametersWithWhere(condition);
+                using (var reader = cmd.ExecuteReader())
+                    return reader.Read() ? map.Create(reader) : null;
+            }
         }
 
         /// <summary>
-        /// Gets a specific object from the database asynchronously with a key
+        /// Gets a specific object from the database that matches the condition, or if not found null
         /// </summary>
         /// <typeparam name="T">The type of object to get</typeparam>
         /// <param name="connection">The connection to quuery against</param>
@@ -89,11 +111,16 @@ namespace LScape.Data.Extensions
         {
             var map = Mapper.Map<T>();
             condition = CheckKey(condition, map.KeyName);
-            return await ReaderAsync(connection, $"SELECT {map.SelectColumnList} FROM [{map.TableName}] WHERE {AddWhere(condition)}", async r => await r.ReadAsync() ? map.Create(r) : null, condition);
+            using (var cmd = connection.TextCommand(map.SelectStatement))
+            {
+                cmd.AddParametersWithWhere(condition);
+                using (var reader = await cmd.ExecuteReaderAsync())
+                    return await reader.ReadAsync() ? map.Create(reader) : null;
+            }
         }
 
         /// <summary>
-        /// Gets all the objects from the database
+        /// Gets all the objects from the database that match the condition
         /// </summary>
         /// <typeparam name="T">The typ eof object to get</typeparam>
         /// <param name="connection">The connection to query against</param>
@@ -101,17 +128,17 @@ namespace LScape.Data.Extensions
         public static IEnumerable<T> GetAll<T>(this IDbConnection connection, object condition = null) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            var where = "";
-            if (condition != null)
+            condition = CheckKey(condition, map.KeyName);
+            using (var cmd = connection.TextCommand(map.SelectStatement))
             {
-                condition = CheckKey(condition, map.KeyName);
-                where = $" WHERE {AddWhere(condition)}";
+                cmd.AddParametersWithWhere(condition);
+                using (var reader = cmd.ExecuteReader())
+                    return map.CreateEnumerable(reader);
             }
-            return Reader(connection, $"SELECT {map.SelectColumnList} FROM [{map.TableName}]{where}", r => map.CreateEnumerable(r), condition);
         }
 
         /// <summary>
-        /// Gets all the objects from the database asynchronously
+        /// Gets all the objects from the database that match the condition
         /// </summary>
         /// <typeparam name="T">The typ eof object to get</typeparam>
         /// <param name="connection">The connection to query against</param>
@@ -119,37 +146,48 @@ namespace LScape.Data.Extensions
         public static async Task<IEnumerable<T>> GetAllAsync<T>(this IDbConnection connection, object condition = null) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            var where = "";
-            if (condition != null)
+            condition = CheckKey(condition, map.KeyName);
+            using (var cmd = connection.TextCommand(map.SelectStatement))
             {
-                condition = CheckKey(condition, map.KeyName);
-                where = $" WHERE {AddWhere(condition)}";
+                cmd.AddParametersWithWhere(condition);
+                using (var reader = await cmd.ExecuteReaderAsync())
+                    return await map.CreateEnumerableAsync(reader);
             }
-            return await ReaderAsync(connection, $"SELECT {map.SelectColumnList} FROM [{map.TableName}]{where}", async r => await map.CreateEnumerableAsync(r), condition);
         }
 
         /// <summary>
-        /// Get the number of objects in the database
+        /// Get the number of objects in the database that match a condition
         /// </summary>
         /// <typeparam name="T">The typ eof object to get</typeparam>
         /// <param name="connection">The connection to query against</param>
         /// <param name="condition">An anon type with the name of columns, or null for all</param>
-        public static int Count<T>(this IDbConnection connection, dynamic condition = null) where T : class, new()
+        public static int Count<T>(this IDbConnection connection, object condition = null) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            var where = "";
-            if (condition != null)
+            condition = CheckKey(condition, map.KeyName);
+            
+            using (var cmd = connection.TextCommand(map.CountStatement))
             {
-                condition = CheckKey(condition, map.KeyName);
-                where = $" WHERE {AddWhere(condition)}";
-            }
-            using (var cmd = connection.CreateCommand())
-            {
-                cmd.CommandText = $"SELECT COUNT({map.KeyName} FROM [{map.TableName}]{where}";
-                if(condition != null)
-                    cmd.AddParameters((object)condition);
-
+                cmd.AddParametersWithWhere(condition);
                 return (int)cmd.ExecuteScalar();
+            }
+        }
+
+        /// <summary>
+        /// Get the number of objects in the database that match a condition
+        /// </summary>
+        /// <typeparam name="T">The typ eof object to get</typeparam>
+        /// <param name="connection">The connection to query against</param>
+        /// <param name="condition">An anon type with the name of columns, or null for all</param>
+        public static async Task<int> CountAsync<T>(this IDbConnection connection, object condition = null) where T : class, new()
+        {
+            var map = Mapper.Map<T>();
+            condition = CheckKey(condition, map.KeyName);
+
+            using (var cmd = connection.TextCommand(map.CountStatement))
+            {
+                cmd.AddParametersWithWhere(condition);
+                return (int)await cmd.ExecuteScalarAsync();
             }
         }
 
@@ -162,7 +200,12 @@ namespace LScape.Data.Extensions
         public static T Insert<T>(this IDbConnection connection, T entity) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            return Reader(connection, $"INSERT INTO [{map.TableName}] ({map.InsertColumnList}) OUTPUT INSERTED.* VALUES({map.InsertParameterList})", r => r.Read() ? map.Create(r) : null, entity, map);
+            using (var cmd = connection.TextCommand(map.InsertStatement))
+            {
+                map.AddParameters(cmd, entity);
+                using (var reader = cmd.ExecuteReader())
+                    return reader.Read() ? map.Create(reader) : null;
+            }
         }
 
         /// <summary>
@@ -174,7 +217,12 @@ namespace LScape.Data.Extensions
         public static async Task<T> InsertAsync<T>(this IDbConnection connection, T entity) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            return await ReaderAsync(connection, $"INSERT INTO [{map.TableName}] ({map.InsertColumnList}) OUTPUT INSERTED.* VALUES({map.InsertParameterList})", async r => await r.ReadAsync() ? map.Create(r) : null, entity, map);
+            using (var cmd = connection.TextCommand(map.InsertStatement))
+            {
+                map.AddParameters(cmd, entity);
+                using (var reader = await cmd.ExecuteReaderAsync())
+                    return await reader.ReadAsync() ? map.Create(reader) : null;
+            }
         }
 
         /// <summary>
@@ -186,7 +234,12 @@ namespace LScape.Data.Extensions
         public static T Update<T>(this IDbConnection connection, T entity) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            return Reader(connection, $"UPDATE [{map.TableName}] SET {map.UpdateSetString} OUTPUT INSERTED.* WHERE {map.KeyWhere}", r => r.Read() ? map.Create(r) : null, entity, map, true);
+            using (var cmd = connection.TextCommand(map.UpdateStatement))
+            {
+                map.AddParameters(cmd, entity, true);
+                using (var reader = cmd.ExecuteReader())
+                    return reader.Read() ? map.Create(reader) : null;
+            }
         }
 
         /// <summary>
@@ -198,7 +251,12 @@ namespace LScape.Data.Extensions
         public static async Task<T> UpdateAsync<T>(this IDbConnection connection, T entity) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            return await ReaderAsync(connection, $"UPDATE [{map.TableName}] SET {map.UpdateSetString} OUTPUT INSERTED.* WHERE {map.KeyWhere}", async r => await r.ReadAsync() ? map.Create(r) : null, entity, map, true);
+            using (var cmd = connection.TextCommand(map.UpdateStatement))
+            {
+                map.AddParameters(cmd, entity, true);
+                using (var reader = await cmd.ExecuteReaderAsync())
+                    return await reader.ReadAsync() ? map.Create(reader) : null;
+            }
         }
 
         /// <summary>
@@ -210,9 +268,8 @@ namespace LScape.Data.Extensions
         public static int Delete<T>(this IDbConnection connection, T entity) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            using (var cmd = connection.CreateCommand())
+            using (var cmd = connection.TextCommand(map.DeleteStatement))
             {
-                cmd.CommandText = $"DELETE FROM [{map.TableName}] WHERE {map.KeyWhere}";
                 map.AddKeyParameters(cmd, entity);
                 return cmd.ExecuteNonQuery();
             }
@@ -225,14 +282,13 @@ namespace LScape.Data.Extensions
         /// <param name="connection">The connection to the database</param>
         /// <param name="condition">an anonymous object holding the condition for deletion</param>
         /// <returns></returns>
-        public static int Delete<T>(this IDbConnection connection, dynamic condition) where T : class, new()
+        public static int Delete<T>(this IDbConnection connection, object condition) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            using (var cmd = connection.CreateCommand())
+            condition = CheckKey(condition, map.KeyName);
+            using (var cmd = connection.TextCommand($"DELETE FROM [{map.TableName}]"))
             {
-                condition = CheckKey(condition, map.KeyName);
-                cmd.CommandText = $"DELETE FROM [{map.TableName}] WHERE {AddWhere(condition)}";
-                cmd.AddParameters((object)condition);
+                cmd.AddParametersWithWhere(condition);
                 return cmd.ExecuteNonQuery();
             }
         }
@@ -246,9 +302,8 @@ namespace LScape.Data.Extensions
         public static async Task<int> DeleteAsync<T>(this IDbConnection connection, T entity) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            using (var cmd = connection.CreateCommand())
+            using (var cmd = connection.TextCommand(map.DeleteStatement))
             {
-                cmd.CommandText = $"DELTE FROM [{map.TableName}] WHERE {map.KeyWhere}";
                 map.AddKeyParameters(cmd, entity);
                 return await cmd.ExecuteNonQueryAsync();
             }
@@ -261,51 +316,57 @@ namespace LScape.Data.Extensions
         /// <param name="connection">The connection to the database</param>
         /// <param name="condition">an anonymous object holding the condition for deletion</param>
         /// <returns></returns>
-        public static async Task<int> DeleteAsync<T>(this IDbConnection connection, dynamic condition) where T : class, new()
+        public static async Task<int> DeleteAsync<T>(this IDbConnection connection, object condition) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            using (var cmd = connection.CreateCommand())
+            condition = CheckKey(condition, map.KeyName);
+            using (var cmd = connection.TextCommand($"DELETE FROM [{map.TableName}]"))
             {
-                condition = CheckKey(condition, map.KeyName);
-                cmd.CommandText = $"DELETE FROM [{map.TableName}] WHERE {AddWhere(condition)}";
-                cmd.AddParameters((object)condition);
+                cmd.AddParametersWithWhere(condition);
                 return await cmd.ExecuteNonQueryAsync();
             }
         }
 
-
-        private static T Reader<T>(IDbConnection connection, string query, Func<IDataReader, T> readFunc, object parameters = null, IMap map = null, bool includeKeys = false)
+        /// <summary>
+        /// Creates a sql text command
+        /// </summary>
+        /// <param name="connection">The connection for the command</param>
+        /// <param name="text">The command text</param>
+        /// <param name="parameters">The parameters for the command</param>
+        public static IDbCommand TextCommand(this IDbConnection connection, string text, object parameters = null)
         {
-            using (var cmd = connection.CreateCommand())
-            {
-                cmd.CommandText = query;
-                SetParameters(parameters, map, cmd, includeKeys);
-                using (var reader = cmd.ExecuteReader())
-                    return readFunc(reader);
-            }
-        }
-
-        private static async Task<T> ReaderAsync<T>(IDbConnection connection, string query, Func<IDataReader, Task<T>> readFunc, object parameters = null, IMap map = null, bool includeKeys = false)
-        {
-            using (var cmd = connection.CreateCommand())
-            {
-                cmd.CommandText = query;
-                SetParameters(parameters, map, cmd, includeKeys);
-                using (var reader = await cmd.ExecuteReaderAsync())
-                    return await readFunc(reader);
-            }
-        }
-
-        private static void SetParameters(object parameters, IMap map, IDbCommand cmd, bool includeKeys)
-        {
-            if (map != null)
-                map.AddParameters(cmd, parameters, includeKeys);
-            else if (parameters != null)
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = text;
+            
+            if (parameters != null)
                 cmd.AddParameters(parameters);
+
+            return cmd;
+        }
+
+        /// <summary>
+        /// Creates a stored procedure command
+        /// </summary>
+        /// <param name="connection">The connection for the command</param>
+        /// <param name="procedure">The procedure name</param>
+        /// <param name="parameters">The parameters for the command</param>
+        public static IDbCommand ProcCommand(this IDbConnection connection, string procedure, object parameters = null)
+        {
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = procedure;
+            cmd.CommandType = CommandType.StoredProcedure;
+            
+            if (parameters != null)
+                cmd.AddParameters(parameters);
+
+            return cmd;
         }
 
         private static object CheckKey(object inKey, string keyName)
         {
+            if (inKey == null)
+                return null;
+
             var outKey = inKey;
             if (TypeMapping.IsMappableType(inKey.GetType()))
             {
@@ -315,12 +376,6 @@ namespace LScape.Data.Extensions
             }
 
             return outKey;
-        }
-
-        private static string AddWhere(object keys)
-        {
-            var keysType = keys.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            return string.Join(", ", keysType.Select(pi => $"[{pi.Name}] = @{pi.Name}"));
         }
     }
 }

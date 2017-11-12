@@ -1,5 +1,6 @@
 ﻿using LScape.Data.Mapping;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Reflection;
@@ -44,16 +45,57 @@ namespace LScape.Data.Extensions
         /// </summary>
         /// <param name="command">The command to add the properties to</param>
         /// <param name="parameters">The anonymous object that contains the parameters</param>
-        public static void AddParameters(this IDbCommand command, dynamic parameters)
+        public static void AddParameters(this IDbCommand command, object parameters)
         {
-            var paramType = ((object) parameters).GetType();
-            foreach (var property in paramType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            if (parameters == null)
+                return;
+
+            var paramType = parameters.GetType();
+            foreach (var propertyInfo in paramType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
                 var parameter = command.CreateParameter();
-                parameter.ParameterName = property.Name;
-                parameter.Value = property.GetValue(parameters) ?? DBNull.Value;
-                parameter.DbType = TypeMapping.GetDbType(property.PropertyType);
+                parameter.ParameterName = propertyInfo.Name;
+                parameter.Value = propertyInfo.GetValue(parameters) ?? DBNull.Value;
+                parameter.DbType = TypeMapping.GetDbType(propertyInfo.PropertyType);
                 command.Parameters.Add(parameter);
+            }
+        }
+
+        /// <summary>
+        /// Add parameters from an anonymous type and add to where clause
+        /// </summary>
+        /// <param name="command">THe command to add the parameters and where clause to</param>
+        /// <param name="parameters">The anonymous object that contains the parameters</param>
+        /// <remarks>Only works for sql command text. appends the where clause to the end with the property names</remarks>
+        public static void AddParametersWithWhere(this IDbCommand command, object parameters)
+        {
+            if (parameters == null)
+                return;
+
+            var paramType = parameters.GetType();
+            var whereList = new List<string>();
+            foreach (var propertyInfo in paramType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = propertyInfo.Name;
+                parameter.Value = propertyInfo.GetValue(parameters) ?? DBNull.Value;
+                parameter.DbType = TypeMapping.GetDbType(propertyInfo.PropertyType);
+                command.Parameters.Add(parameter);
+
+                if (parameter.Value is string valStr && valStr.Contains("%"))
+                    whereList.Add($"[{propertyInfo.Name}] LIKE @{propertyInfo.Name}");
+                else
+                    whereList.Add($"[{propertyInfo.Name}] = @{propertyInfo.Name}");
+            }
+
+            if (whereList.Count > 0)
+            {
+                if (command.CommandText.Trim().EndsWith("and", StringComparison.InvariantCultureIgnoreCase))
+                    command.CommandText += string.Join(" AND ", whereList);
+                else if (command.CommandText.IndexOf("where", 0, StringComparison.InvariantCultureIgnoreCase) != -1)
+                    command.CommandText += $" AND {string.Join(" AND ", whereList)}";
+                else
+                    command.CommandText += $" WHERE {string.Join(" AND ", whereList)}";
             }
 
         }

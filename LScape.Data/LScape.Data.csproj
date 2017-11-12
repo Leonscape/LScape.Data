@@ -8,11 +8,11 @@
     <Description>Simple Object mapping</Description>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Copyright>Leon Penninton 2017</Copyright>
-    <PackageTags>database orm mapping poco</PackageTags>
+    <PackageTags>database orm mapping poco micro-orm microrm sql orm-micro</PackageTags>
     <SignAssembly>false</SignAssembly>
-    <AssemblyVersion>1.1.2.9</AssemblyVersion>
-    <FileVersion>1.1.2.9</FileVersion>
-    <Version>1.1.2</Version>
+    <AssemblyVersion>1.3.0.16</AssemblyVersion>
+    <FileVersion>1.3.0.16</FileVersion>
+    <Version>1.3.0</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -22,11 +22,4 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DocumentationFile>bin\Release\netstandard2.0\LScape.Data.xml</DocumentationFile>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Reference Include="Microsoft.CSharp">
-      <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.2\Microsoft.CSharp.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>

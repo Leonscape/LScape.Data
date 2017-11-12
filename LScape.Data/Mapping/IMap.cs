@@ -54,6 +54,75 @@ namespace LScape.Data.Mapping
         /// <remarks>Returns multi key parts for a where statement</remarks>
         string KeyWhere { get; }
 
+        /// <summary>
+        /// Returns a full select statement
+        /// </summary>
+        /// <remarks>
+        /// No conditions are placed on the statement automatically, so use AddParametersWithWhere, or simply
+        /// append your own where statement, or change it to your preferences
+        /// </remarks>
+        string SelectStatement { get; set; }
+
+        /// <summary>
+        /// Returns a count statement
+        /// </summary>
+        string CountStatement { get; set; }
+
+        /// <summary>
+        /// Returns a full insert statement
+        /// </summary>
+        string InsertStatement { get; set; }
+
+        /// <summary>
+        /// Returns a full update statement
+        /// </summary>
+        string UpdateStatement { get; set; }
+
+        /// <summary>
+        /// Returns a full delete statement
+        /// </summary>
+        string DeleteStatement { get; set; }
+
+        #endregion
+
+        #region Configuration
+
+        /// <summary>
+        /// The properties to be ignored
+        /// </summary>
+        /// <param name="properties">The name of the properties to ignore</param>
+        /// <remarks>
+        /// Can be called multiple times, and all will be ignored
+        /// These properties are then completed ignored by the mapper
+        /// </remarks>
+        IMap Ignore(params string[] properties);
+
+        /// <summary>
+        /// The properties to set to calculated
+        /// </summary>
+        /// <param name="properties">The name of the properties to set as calculated</param>
+        /// <remarks>
+        /// Usually for when properties are calculated on the database,
+        /// Datestamps, RowVersion, etc...
+        /// </remarks>
+        IMap Calculated(params string[] properties);
+
+        /// <summary>
+        /// The properties to set to Key
+        /// </summary>
+        /// <param name="properties">The name of the properties to set as Key</param>
+        /// <remarks>
+        /// For properties that are calculated keys of the object. Does not take part
+        /// like calculated keys but are sent with parameters for updates.
+        /// </remarks>
+        IMap Key(params string[] properties);
+
+        /// <summary>
+        /// Tells the map fluent configuration is complete,
+        /// and we can regenerate sql strings
+        /// </summary>
+        IMap CompleteConfiguration();
+
         #endregion
 
         #region object creation
