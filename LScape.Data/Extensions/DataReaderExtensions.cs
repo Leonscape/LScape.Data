@@ -12,7 +12,7 @@ namespace LScape.Data.Extensions
     public static class DataReaderExtensions
     {
         /// <summary>
-        /// Performs async reader on a datareader
+        /// Performs async read on a IDataReader
         /// </summary>
         /// <param name="reader">The reader to perform async read on</param>
         /// <returns></returns>
@@ -25,7 +25,7 @@ namespace LScape.Data.Extensions
         }
 
         /// <summary>
-        /// Gets the value of a field in the current datareader row
+        /// Gets the value of a field in the current IDataReader row
         /// </summary>
         /// <typeparam name="T">The type of the field</typeparam>
         /// <param name="reader">The reader to get the value from</param>
@@ -39,7 +39,7 @@ namespace LScape.Data.Extensions
         }
 
         /// <summary>
-        /// Gets the value of a field in the current datareader row
+        /// Gets the value of a field in the current IDataReader row
         /// </summary>
         /// <param name="reader">The reader to get the value from</param>
         /// <param name="i">The index of the field</param>
@@ -51,7 +51,7 @@ namespace LScape.Data.Extensions
         }
 
         /// <summary>
-        /// Gets the value of a field in the current datareader row
+        /// Gets the value of a field in the current IDataReader row
         /// </summary>
         /// <param name="reader">The reader to get the value from</param>
         /// <param name="name">The name of the field</param>

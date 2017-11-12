@@ -24,7 +24,7 @@
     }
 
     /// <summary>
-    /// Baseic naming conversions
+    /// Basic naming conversions
     /// </summary>
     public enum NameConvention
     {

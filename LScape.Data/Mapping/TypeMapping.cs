@@ -13,7 +13,7 @@ namespace LScape.Data.Mapping
         /// <summary>
         /// Gets the DbType that matches the clrType
         /// </summary>
-        /// <param name="type">The clr type</param>
+        /// <param name="type">The clrType</param>
         public static DbType GetDbType(Type type)
         {
             if (IsEnum(type, out var enumType))

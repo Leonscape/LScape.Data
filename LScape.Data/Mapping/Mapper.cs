@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 namespace LScape.Data.Mapping
 {
     /// <summary>
-    /// Object used to configure and retieve mappings
+    /// Object used to configure and retrieve mappings
     /// </summary>
     /// <remarks>
     /// A single used as a storage, and configuration for all the mappings</remarks>
@@ -28,10 +28,10 @@ namespace LScape.Data.Mapping
         public static MapperConfiguration Configuration => Instance._config;
 
         /// <summary>
-        /// Retieves the a map for a type
+        /// Retrieves the a map for a type
         /// </summary>
         /// <typeparam name="T">The type the map is for</typeparam>
-        /// <remarks>If no map is set creates one automatically base on the conventions set in the configuraiton</remarks>
+        /// <remarks>If no map is set creates one automatically base on the conventions set in the configuration</remarks>
         public static Map<T> Map<T>() where T : class, new()
         {
             if (!Instance._maps.TryGetValue(typeof(T), out var map))
@@ -54,9 +54,9 @@ namespace LScape.Data.Mapping
         }
 
         /// <summary>
-        /// Prepopulates the maps stored the the types provided
+        /// Populates the maps stored in the mapper for the types specified
         /// </summary>
-        /// <param name="types">The types to premap</param>
+        /// <param name="types">The types to map</param>
         public static void PreMap(params Type[] types)
         {
             var mapType = typeof(Map<>);

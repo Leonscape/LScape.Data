@@ -7,39 +7,41 @@ using System.Threading.Tasks;
 namespace LScape.Data.Extensions
 {
     /// <summary>
-    /// Extensions to the <see cref="IDbConnection" /> uinterface for direct querying
+    /// Extensions to the <see cref="IDbConnection" /> interface for direct querying
     /// </summary>
     public static class ConnectionExtensions
     {
+        #region Query
+
         /// <summary>
         /// Queries the database and attempts to create an object from the result
         /// </summary>
         /// <typeparam name="T">The type of object to create</typeparam>
-        /// <param name="connection">The connection to query on</param>
-        /// <param name="query">The query</param>
-        /// <param name="parameters">Any parameters to the query</param>
-        public static T Query<T>(this IDbConnection connection, string query, object parameters = null) where T : class, new()
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="command">The command text</param>
+        /// <param name="parameters">The parameters if any</param>
+        public static T ExecuteQuery<T>(this IDbConnection connection, string command, object parameters = null) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            using (var cmd = connection.TextCommand(query))
+            using (var cmd = connection.TextCommand(command))
             {
                 cmd.AddParameters(parameters);
                 using (var reader = cmd.ExecuteReader())
                     return reader.Read() ? map.Create(reader) : null;
             }
         }
-        
+
         /// <summary>
         /// Queries the database asynchronously and attempts to create an object from the result
         /// </summary>
         /// <typeparam name="T">The type of object to create</typeparam>
-        /// <param name="connection">The connection to query on</param>
-        /// <param name="query">The query</param>
-        /// /// <param name="parameters">Any parameters to the query</param>
-        public static async Task<T> QueryAsync<T>(this IDbConnection connection, string query, object parameters = null) where T : class, new()
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="command">The command text</param>
+        /// <param name="parameters">The parameters if any</param>
+        public static async Task<T> ExecuteQueryAsync<T>(this IDbConnection connection, string command, object parameters = null) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            using (var cmd = connection.TextCommand(query))
+            using (var cmd = connection.TextCommand(command))
             {
                 cmd.AddParameters(parameters);
                 using (var reader = await cmd.ExecuteReaderAsync())
@@ -51,13 +53,13 @@ namespace LScape.Data.Extensions
         /// Queries the database and attempts to create an enumerable of object from the result
         /// </summary>
         /// <typeparam name="T">The type of object to create</typeparam>
-        /// <param name="connection">The connection to query on</param>
-        /// <param name="query">The query</param>
-        /// <param name="parameters">Any parameters to the query</param>
-        public static IEnumerable<T> QueryMany<T>(this IDbConnection connection, string query, object parameters = null) where T : class, new()
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="command">The command text</param>
+        /// <param name="parameters">The parameters if any</param>
+        public static IEnumerable<T> ExecuteQueryMany<T>(this IDbConnection connection, string command, object parameters = null) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            using (var cmd = connection.TextCommand(query))
+            using (var cmd = connection.TextCommand(command))
             {
                 cmd.AddParameters(parameters);
                 using (var reader = cmd.ExecuteReader())
@@ -69,25 +71,251 @@ namespace LScape.Data.Extensions
         /// Queries the database asynchronously and attempts to create an enumerable of object from the result
         /// </summary>
         /// <typeparam name="T">The type of object to create</typeparam>
-        /// <param name="connection">The connection to query on</param>
-        /// <param name="query">The query</param>
-        /// <param name="parameters">Any parameters to the query</param>
-        public static async Task<IEnumerable<T>> QueryManyAsync<T>(this IDbConnection connection, string query, object parameters = null) where T : class, new()
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="command">The command text</param>
+        /// <param name="parameters">The parameters if any</param>
+        public static async Task<IEnumerable<T>> ExecuteQueryManyAsync<T>(this IDbConnection connection, string command, object parameters = null) where T : class, new()
         {
             var map = Mapper.Map<T>();
-            using (var cmd = connection.TextCommand(query))
+            using (var cmd = connection.TextCommand(command))
             {
                 cmd.AddParameters(parameters);
                 using (var reader = await cmd.ExecuteReaderAsync())
                     return await map.CreateEnumerableAsync(reader);
             }
         }
-        
+
+        /// <summary>
+        /// Calls a stored procedure which returns a single result
+        /// </summary>
+        /// <typeparam name="T">The type of object to return</typeparam>
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="storedProcedure">The stored procedure to use</param>
+        /// <param name="parameters">The parameters if any</param>
+        public static T ExecuteProcedure<T>(this IDbConnection connection, string storedProcedure, object parameters = null) where T : class, new()
+        {
+            var map = Mapper.Map<T>();
+            using (var cmd = connection.ProcCommand(storedProcedure))
+            {
+                cmd.AddParameters(parameters);
+                using (var reader = cmd.ExecuteReader())
+                    return reader.Read() ? map.Create(reader) : null;
+            }
+        }
+
+        /// <summary>
+        /// Calls a stored procedure which returns a single result asynchronously
+        /// </summary>
+        /// <typeparam name="T">The type of object to return</typeparam>
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="storedProcedure">The stored procedure to use</param>
+        /// <param name="parameters">The parameters if any</param>
+        public static async Task<T> ExecuteProcedureAsync<T>(this IDbConnection connection, string storedProcedure, object parameters = null) where T : class, new()
+        {
+            var map = Mapper.Map<T>();
+            using (var cmd = connection.ProcCommand(storedProcedure))
+            {
+                cmd.AddParameters(parameters);
+                using (var reader = cmd.ExecuteReader())
+                    return await reader.ReadAsync() ? map.Create(reader) : null;
+            }
+        }
+
+        /// <summary>
+        /// Calls a stored procedure which returns a list of objects
+        /// </summary>
+        /// <typeparam name="T">The type of object to return</typeparam>
+        /// <param name="connection">The connection to call stored procedure on</param>
+        /// <param name="storedProcedure">The name of the stored procedure</param>
+        /// <param name="parameters">The parameters if any</param>
+        /// <returns></returns>
+        public static IEnumerable<T> ExecuteProcedureMany<T>(this IDbConnection connection, string storedProcedure, object parameters = null) where T : class, new()
+        {
+            var map = Mapper.Map<T>();
+            using (var cmd = connection.ProcCommand(storedProcedure))
+            {
+                cmd.AddParameters(parameters);
+                using (var reader = cmd.ExecuteReader())
+                    return map.CreateEnumerable(reader);
+            }
+        }
+
+        /// <summary>
+        /// Calls a stored procedure which returns a list of objects asynchronously
+        /// </summary>
+        /// <typeparam name="T">The type of object to return</typeparam>
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="storedProcedure">The stored procedure to use</param>
+        /// <param name="parameters">The parameters if any</param>
+        /// <returns></returns>
+        public static async Task<IEnumerable<T>> ExecuteProcedureManyAsync<T>(this IDbConnection connection, string storedProcedure, object parameters = null) where T : class, new()
+        {
+            var map = Mapper.Map<T>();
+            using (var cmd = connection.ProcCommand(storedProcedure))
+            {
+                cmd.AddParameters(parameters);
+                using (var reader = cmd.ExecuteReader())
+                    return await map.CreateEnumerableAsync(reader);
+            }
+        }
+
+        #endregion
+
+        #region Scalar
+
+        /// <summary>
+        /// Queries the database for a scalar value
+        /// </summary>
+        /// <typeparam name="T">The type of scalar value</typeparam>
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="command">The command text</param>
+        /// <param name="parameters">The parameters if any</param>
+        /// <returns>If the type does not match returns </returns>
+        public static T ExecuteScalar<T>(this IDbConnection connection, string command, object parameters = null)
+        {
+            using (var cmd = connection.TextCommand(command))
+            {
+                cmd.AddParameters(parameters);
+                if (cmd.ExecuteScalar() is T rst)
+                    return rst;
+
+                return default(T);
+            }
+        }
+
+        /// <summary>
+        /// Queries the database for a scalar value asynchronously
+        /// </summary>
+        /// <typeparam name="T">The type of scalar value</typeparam>
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="command">The command text</param>
+        /// <param name="parameters">The parameters if any</param>
+        /// <returns>If the type does not match returns </returns>
+        public static async Task<T> ExecuteScalarAsync<T>(this IDbConnection connection, string command, object parameters = null)
+        {
+            using (var cmd = connection.TextCommand(command))
+            {
+                cmd.AddParameters(parameters);
+                if (await cmd.ExecuteScalarAsync() is T rst)
+                    return rst;
+
+                return default(T);
+            }
+        }
+
+        /// <summary>
+        /// runs a stored procedure to get a scalar value
+        /// </summary>
+        /// <typeparam name="T">The type of scalar value</typeparam>
+        /// <param name="connection">The connection to query</param>
+        /// <param name="storedProcedure">The stored procedure to use</param>
+        /// <param name="parameters">The parameters if any</param>
+        /// <returns>If the type does not match returns </returns>
+        public static T ExecuteProcedureScalar<T>(this IDbConnection connection, string storedProcedure, object parameters = null)
+        {
+            using (var cmd = connection.ProcCommand(storedProcedure))
+            {
+                cmd.AddParameters(parameters);
+                if (cmd.ExecuteScalar() is T rst)
+                    return rst;
+
+                return default(T);
+            }
+        }
+
+        /// <summary>
+        /// runs a stored procedure to get a scalar value asynchronously
+        /// </summary>
+        /// <typeparam name="T">The type of scalar value</typeparam>
+        /// <param name="connection">The connection to query</param>
+        /// <param name="storedProcedure">The stored procedure to use</param>
+        /// <param name="parameters">The parameters if any</param>
+        /// <returns>If the type does not match returns </returns>
+        public static async Task<T> ExecuteProcedureScalarAsync<T>(this IDbConnection connection, string storedProcedure, object parameters = null)
+        {
+            using (var cmd = connection.ProcCommand(storedProcedure))
+            {
+                cmd.AddParameters(parameters);
+                if (await cmd.ExecuteScalarAsync() is T rst)
+                    return rst;
+
+                return default(T);
+            }
+        }
+
+        #endregion
+
+        #region NonQuery
+
+        /// <summary>
+        /// Performs a command against the database that doesn't return a value
+        /// </summary>
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="command">The command text</param>
+        /// <param name="parameters">The parameters if any</param>
+        public static void ExecuteNonQuery(this IDbConnection connection, string command, object parameters = null)
+        {
+            using (var cmd = connection.TextCommand(command))
+            {
+                cmd.AddParameters(parameters);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>
+        /// Performs a command asynchronously against the database that doesn't return a value
+        /// </summary>
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="command">The command text</param>
+        /// <param name="parameters">The parameters if any</param>
+        public static async Task ExecuteNonQueryAsync(this IDbConnection connection, string command, object parameters = null)
+        {
+            using (var cmd = connection.TextCommand(command))
+            {
+                cmd.AddParameters(parameters);
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        /// <summary>
+        /// Executes a stored procedure that doesn't produce a value
+        /// </summary>
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="storedProcedure">The stored procedure to use</param>
+        /// <param name="parameters">The parameters if any</param>
+        public static void ExecuteProcedureNonQuery(this IDbConnection connection, string storedProcedure, object parameters = null)
+        {
+            using (var cmd = connection.ProcCommand(storedProcedure))
+            {
+                cmd.AddParameters(parameters);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>
+        /// Executes a stored procedure that doesn't produce a value
+        /// </summary>
+        /// <param name="connection">The connection to execute against</param>
+        /// <param name="storedProcedure">The stored procedure to use</param>
+        /// <param name="parameters">The parameters if any</param>
+        public static async Task ExecuteProcedureNonQueryAsync(this IDbConnection connection, string storedProcedure, object parameters = null)
+        {
+            using (var cmd = connection.ProcCommand(storedProcedure))
+            {
+                cmd.AddParameters(parameters);
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        #endregion
+
+        #region Crud
+
         /// <summary>
         /// Gets a specific object from the database that matches the condition, or if not found null
         /// </summary>
         /// <typeparam name="T">The type of object to get</typeparam>
-        /// <param name="connection">The connection to quuery against</param>
+        /// <param name="connection">The connection to query against</param>
         /// <param name="condition">Either the value of a single key entity, or a anon type with the name of columns</param>
         public static T Get<T>(this IDbConnection connection, object condition) where T : class, new()
         {
@@ -105,7 +333,7 @@ namespace LScape.Data.Extensions
         /// Gets a specific object from the database that matches the condition, or if not found null
         /// </summary>
         /// <typeparam name="T">The type of object to get</typeparam>
-        /// <param name="connection">The connection to quuery against</param>
+        /// <param name="connection">The connection to query against</param>
         /// <param name="condition">Either the value of a single key entity, or a anon type with the name of columns</param>
         public static async Task<T> GetAsync<T>(this IDbConnection connection, object condition) where T : class, new()
         {
@@ -122,7 +350,7 @@ namespace LScape.Data.Extensions
         /// <summary>
         /// Gets all the objects from the database that match the condition
         /// </summary>
-        /// <typeparam name="T">The typ eof object to get</typeparam>
+        /// <typeparam name="T">The type of object to get</typeparam>
         /// <param name="connection">The connection to query against</param>
         /// <param name="condition">Either the value of a single key entity, or a anon type with the name of columns, or null for all</param>
         public static IEnumerable<T> GetAll<T>(this IDbConnection connection, object condition = null) where T : class, new()
@@ -140,7 +368,7 @@ namespace LScape.Data.Extensions
         /// <summary>
         /// Gets all the objects from the database that match the condition
         /// </summary>
-        /// <typeparam name="T">The typ eof object to get</typeparam>
+        /// <typeparam name="T">The type of object to get</typeparam>
         /// <param name="connection">The connection to query against</param>
         /// <param name="condition">Either the value of a single key entity, or a anon type with the name of columns, or null for all</param>
         public static async Task<IEnumerable<T>> GetAllAsync<T>(this IDbConnection connection, object condition = null) where T : class, new()
@@ -158,7 +386,7 @@ namespace LScape.Data.Extensions
         /// <summary>
         /// Get the number of objects in the database that match a condition
         /// </summary>
-        /// <typeparam name="T">The typ eof object to get</typeparam>
+        /// <typeparam name="T">The type of object to get</typeparam>
         /// <param name="connection">The connection to query against</param>
         /// <param name="condition">An anon type with the name of columns, or null for all</param>
         public static int Count<T>(this IDbConnection connection, object condition = null) where T : class, new()
@@ -176,7 +404,7 @@ namespace LScape.Data.Extensions
         /// <summary>
         /// Get the number of objects in the database that match a condition
         /// </summary>
-        /// <typeparam name="T">The typ eof object to get</typeparam>
+        /// <typeparam name="T">The type of object to get</typeparam>
         /// <param name="connection">The connection to query against</param>
         /// <param name="condition">An anon type with the name of columns, or null for all</param>
         public static async Task<int> CountAsync<T>(this IDbConnection connection, object condition = null) where T : class, new()
@@ -326,6 +554,8 @@ namespace LScape.Data.Extensions
                 return await cmd.ExecuteNonQueryAsync();
             }
         }
+
+        #endregion
 
         /// <summary>
         /// Creates a sql text command

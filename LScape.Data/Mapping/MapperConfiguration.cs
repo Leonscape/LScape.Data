@@ -29,7 +29,7 @@ namespace LScape.Data.Mapping
         public Func<string, string> TableNameConvert { get; set; }
 
         /// <summary>
-        /// The name conevtion to use when mapping between properties and columns
+        /// The name convention to use when mapping between properties and columns
         /// </summary>
         /// <remarks>Ignored if <see cref="ColumnNameConvert"/> is set</remarks>
         public NameConvention ColumnNameConvention { get; set; }
@@ -45,7 +45,7 @@ namespace LScape.Data.Mapping
         public Func<string, Type, bool> IgnoreMatch { get; set; }
 
         /// <summary>
-        /// Use this to match propert names that are calculated
+        /// Use this to match property names that are calculated
         /// </summary>
         public Func<string, Type, bool> CalculatedMatch { get; set; }
 

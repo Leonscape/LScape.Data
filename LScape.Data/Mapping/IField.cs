@@ -28,7 +28,7 @@ namespace LScape.Data.Mapping
         object GetPropertyValue(object entity);
 
         /// <summary>
-        /// Sets the properties value from the datareader
+        /// Sets the properties value from the IDataReader
         /// </summary>
         /// <param name="entity">The entity to set the value for</param>
         /// <param name="reader">The reader to get the value from</param>

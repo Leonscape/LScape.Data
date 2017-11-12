@@ -120,11 +120,11 @@ var connection = new SqlConnection(connectionString);
 
 ...
 
-MyClass rst = connection.Query<MyClass>("SELECT * FROM MyTable WHERE Id = 1");
+MyClass rst = connection.ExecuteQuery<MyClass>("SELECT * FROM MyTable WHERE Id = 1");
 
-List<MyClass> rst2 = connection.QueryMany<MyClass>("SELECT * FROM MyTable").ToList();
+List<MyClass> rst2 = connection.ExecuteQueryMany<MyClass>("SELECT * FROM MyTable").ToList();
 
-MyClass rst3 = await connection.QueryAsync<MyClass>("SELECT * FROM MyTable WHERE Id = @Id", new {Id = 1});
+MyClass rst3 = await connection.ExecuteQueryAsync<MyClass>("SELECT * FROM MyTable WHERE Id = @Id", new {Id = 1});
 
 MyClass rst4 = connection.Get<MyClass>(new {Id = 1});
 

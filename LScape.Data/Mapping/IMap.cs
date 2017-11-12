@@ -103,7 +103,7 @@ namespace LScape.Data.Mapping
         /// <param name="properties">The name of the properties to set as calculated</param>
         /// <remarks>
         /// Usually for when properties are calculated on the database,
-        /// Datestamps, RowVersion, etc...
+        /// Date stamps, RowVersion, etc...
         /// </remarks>
         IMap Calculated(params string[] properties);
 

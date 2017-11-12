@@ -1,11 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2006
+VisualStudioVersion = 15.0.27004.2008
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LScape.Data", "LScape.Data\LScape.Data.csproj", "{47874A69-9D98-4635-83B5-6CA2041838CB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LScape.Data", "LScape.Data\LScape.Data.csproj", "{47874A69-9D98-4635-83B5-6CA2041838CB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LScape.Data.Test", "LScape.Data.Test\LScape.Data.Test.csproj", "{FF117FD5-F90C-470B-A171-1ABF525088D4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{16FEB555-F4E3-4B1C-A93E-518C0D02C36A}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE.md = LICENSE.md
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

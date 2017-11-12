@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace LScape.Data.Mapping
 {
     /// <summary>
-    /// Gemeric map class automatically 
+    /// Generic map class automatically 
     /// </summary>
     public class Map<T> : IMap where T : class, new()
     {
@@ -169,7 +169,7 @@ namespace LScape.Data.Mapping
         /// <param name="properties">The properties to set as calculated</param>
         /// <remarks>
         /// Usually for when properties are calculated on the database,
-        /// Identity Keys, Datestamps, etc...
+        /// RowVersions, Date stamps, etc...
         /// </remarks>
         public Map<T> Calculated(params Expression<Func<T, object>>[] properties)
         {
@@ -182,7 +182,7 @@ namespace LScape.Data.Mapping
         /// <param name="properties">The name of the properties to set as calculated</param>
         /// <remarks>
         /// Usually for when properties are calculated on the database,
-        /// Datestamps, RowVersion, etc...
+        /// RowVersions, Date stamps, etc...
         /// </remarks>
         public Map<T> Calculated(params string[] properties)
         {
