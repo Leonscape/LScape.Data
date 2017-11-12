@@ -10,7 +10,7 @@ The project has been re-written as a .netstandard 2.0 library and has no other d
 # Getting Started
 Installation is through nuget with
 ```
-nuget install lscape.data
+pm> Install-Package LScape.Data
 ```
 
 # Using the Mapping
