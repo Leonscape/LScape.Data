@@ -15,7 +15,7 @@ pm> Install-Package LScape.Data
 
 # Using the Mapping
 At the core of LScape.Data is the `Map` class. You can create a map for any class just by creating a new Map object.
-```
+```c#
 using LScape.Data.Mapping;
 
 ...
@@ -32,7 +32,7 @@ on the `Map` class itself.
 To change which column and table the class is associated with you can use the `ColumnAttribute` and `TableAttribute`, 
 or directly change them in the Map with the properties.
 
-```
+```c#
 [Table("MyTable")]
 public class MyClass
 {
@@ -68,7 +68,7 @@ The second part of LScape.Data is the `Mapper` class, it's basically a global ho
 default configuration for how the `Map` class behaves.
 
 To get a `Map` from the `Mapper`:
-```
+```c#
 var Map = Mapper.Map<T>();
 ```
 A `Map` pulled from the mapper is cached and retains any configuration applied to it. The `PreMap` command takes
@@ -95,14 +95,14 @@ SplitCaseLower | some_name
 SplitCaseUpper | SOME_NAME
 
 You can also supply delegates (Func<>) to handle the names if you need something else.
-```
+```c#
 Mapper.Configuraton.TableNameConvert = (input) => $"tbl_{input}";
 ```
 
 There are also Match functions for Ignore, Calculated and Key that take delegates that have the name and type, so you
 handle general cases without having to configure for every class.
 
-```
+```c#
 Mapper.Configuration.KeyMatch = (name, type) => name == "Id" && type == typeof(int);
 ```
 
@@ -115,7 +115,7 @@ Maps to handle opjects.
 There is an Async version of each method.
 
 Here are a few examples
-```
+```c#
 var connection = new SqlConnection(connectionString);
 
 ...
