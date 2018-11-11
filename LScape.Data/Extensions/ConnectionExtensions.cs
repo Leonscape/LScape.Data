@@ -319,7 +319,7 @@ namespace LScape.Data.Extensions
         /// <param name="condition">Either the value of a single key entity, or a anon type with the name of columns</param>
         public static T Get<T>(this IDbConnection connection, object condition) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             condition = CheckKey(condition, map.KeyName);
             using (var cmd = connection.TextCommand(map.SelectStatement))
             {
@@ -337,7 +337,7 @@ namespace LScape.Data.Extensions
         /// <param name="condition">Either the value of a single key entity, or a anon type with the name of columns</param>
         public static async Task<T> GetAsync<T>(this IDbConnection connection, object condition) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             condition = CheckKey(condition, map.KeyName);
             using (var cmd = connection.TextCommand(map.SelectStatement))
             {
@@ -355,7 +355,7 @@ namespace LScape.Data.Extensions
         /// <param name="condition">Either the value of a single key entity, or a anon type with the name of columns, or null for all</param>
         public static IEnumerable<T> GetAll<T>(this IDbConnection connection, object condition = null) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             condition = CheckKey(condition, map.KeyName);
             using (var cmd = connection.TextCommand(map.SelectStatement))
             {
@@ -373,7 +373,7 @@ namespace LScape.Data.Extensions
         /// <param name="condition">Either the value of a single key entity, or a anon type with the name of columns, or null for all</param>
         public static async Task<IEnumerable<T>> GetAllAsync<T>(this IDbConnection connection, object condition = null) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             condition = CheckKey(condition, map.KeyName);
             using (var cmd = connection.TextCommand(map.SelectStatement))
             {
@@ -391,7 +391,7 @@ namespace LScape.Data.Extensions
         /// <param name="condition">An anon type with the name of columns, or null for all</param>
         public static int Count<T>(this IDbConnection connection, object condition = null) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             condition = CheckKey(condition, map.KeyName);
             
             using (var cmd = connection.TextCommand(map.CountStatement))
@@ -409,7 +409,7 @@ namespace LScape.Data.Extensions
         /// <param name="condition">An anon type with the name of columns, or null for all</param>
         public static async Task<int> CountAsync<T>(this IDbConnection connection, object condition = null) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             condition = CheckKey(condition, map.KeyName);
 
             using (var cmd = connection.TextCommand(map.CountStatement))
@@ -427,7 +427,7 @@ namespace LScape.Data.Extensions
         /// <param name="entity">The actual object to insert</param>
         public static T Insert<T>(this IDbConnection connection, T entity) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             using (var cmd = connection.TextCommand(map.InsertStatement))
             {
                 map.AddParameters(cmd, entity);
@@ -444,7 +444,7 @@ namespace LScape.Data.Extensions
         /// <param name="entity">The actual object to insert</param>
         public static async Task<T> InsertAsync<T>(this IDbConnection connection, T entity) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             using (var cmd = connection.TextCommand(map.InsertStatement))
             {
                 map.AddParameters(cmd, entity);
@@ -461,7 +461,7 @@ namespace LScape.Data.Extensions
         /// <param name="entity">The actual object to update</param>
         public static T Update<T>(this IDbConnection connection, T entity) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             using (var cmd = connection.TextCommand(map.UpdateStatement))
             {
                 map.AddParameters(cmd, entity, true);
@@ -478,7 +478,7 @@ namespace LScape.Data.Extensions
         /// <param name="entity">The actual object to update</param>
         public static async Task<T> UpdateAsync<T>(this IDbConnection connection, T entity) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             using (var cmd = connection.TextCommand(map.UpdateStatement))
             {
                 map.AddParameters(cmd, entity, true);
@@ -495,7 +495,7 @@ namespace LScape.Data.Extensions
         /// <param name="entity">The object to delete</param>
         public static int Delete<T>(this IDbConnection connection, T entity) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             using (var cmd = connection.TextCommand(map.DeleteStatement))
             {
                 map.AddKeyParameters(cmd, entity);
@@ -512,7 +512,7 @@ namespace LScape.Data.Extensions
         /// <returns></returns>
         public static int Delete<T>(this IDbConnection connection, object condition) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             condition = CheckKey(condition, map.KeyName);
             using (var cmd = connection.TextCommand($"DELETE FROM [{map.TableName}]"))
             {
@@ -529,7 +529,7 @@ namespace LScape.Data.Extensions
         /// <param name="entity">The object to delete</param>
         public static async Task<int> DeleteAsync<T>(this IDbConnection connection, T entity) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             using (var cmd = connection.TextCommand(map.DeleteStatement))
             {
                 map.AddKeyParameters(cmd, entity);
@@ -546,7 +546,7 @@ namespace LScape.Data.Extensions
         /// <returns></returns>
         public static async Task<int> DeleteAsync<T>(this IDbConnection connection, object condition) where T : class, new()
         {
-            var map = Mapper.Map<T>();
+            var map = Mapper.SqlMap<T>();
             condition = CheckKey(condition, map.KeyName);
             using (var cmd = connection.TextCommand($"DELETE FROM [{map.TableName}]"))
             {

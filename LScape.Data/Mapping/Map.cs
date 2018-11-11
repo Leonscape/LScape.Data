@@ -10,23 +10,15 @@ using System.Threading.Tasks;
 namespace LScape.Data.Mapping
 {
     /// <summary>
-    /// Generic map class automatically 
+    /// Generic map class 
     /// </summary>
+    /// <typeparam name="T">The type the Map is for</typeparam>
     public class Map<T> : IMap where T : class, new()
     {
-        private readonly List<IField> _fields = new List<IField>();
-        private string _selectColumnList;
-        private string _insertColumnList;
-        private string _insertParameterList;
-        private string _updateSetString;
-        private string _keyName;
-        private string _keyWhere;
-
-        private string _selectStatement;
-        private string _countStatement;
-        private string _insertStatement;
-        private string _updateStatement;
-        private string _deleteStatement;
+        /// <summary>
+        /// List of fields
+        /// </summary>
+        protected readonly List<IField> _fields = new List<IField>();
 
         /// <summary>
         /// Constructs a new Map for a type
@@ -42,89 +34,14 @@ namespace LScape.Data.Mapping
         /// <param name="configuration">The configuration to use</param>
         public Map(MapperConfiguration configuration)
         {
-            var type = typeof(T);
-            TableName = configuration.TableName(type.Name);
-            var tableAttribute = type.GetTypeInfo().GetCustomAttribute<TableAttribute>();
-            if (tableAttribute != null)
-                TableName = tableAttribute.TableName;
-
-            MapProperties(type, configuration);
+            MapProperties(configuration);
         }
-
-        /// <inheritdoc/>
-        public string TableName { get; set; }
 
         /// <summary>
         /// The fields of the map
         /// </summary>
         public IEnumerable<IField> Fields => _fields;
-
-        #region Sql String Parts
-
-        /// <inheritdoc/>
-        public string SelectColumnList => _selectColumnList ?? (_selectColumnList = string.Join(", ", _fields.Where(f => f.FieldType != FieldType.Ignore).Select(f => $"[{f.ColumnName}]")));
-
-        /// <inheritdoc/>
-        public string SelectColumnWithAlias(string alias)
-        {
-            return string.Join(", ", _fields.Where(f => f.FieldType != FieldType.Ignore).Select(f => $"{alias}.[{f.ColumnName}]"));
-        }
-
-        /// <inheritdoc/>
-        public string InsertColumnList => _insertColumnList ?? (_insertColumnList = string.Join(", ", _fields.Where(p => p.FieldType == FieldType.Map).Select(p => $"[{p.ColumnName}]")));
-
-        /// <inheritdoc/>
-        public string InsertParameterList => _insertParameterList ?? (_insertParameterList = string.Join(", ", _fields.Where(f => f.FieldType == FieldType.Map).Select(f => $"@{f.ColumnName}")));
-
-        /// <inheritdoc/>
-        public string UpdateSetString => _updateSetString ?? (_updateSetString = string.Join(", ", _fields.Where(f => f.FieldType == FieldType.Map).Select(f => $"[{f.ColumnName}] = @{f.ColumnName}")));
-
-        /// <inheritdoc/>
-        public string KeyName => _keyName ?? (_keyName = _fields.First(f => f.FieldType == FieldType.Key).ColumnName);
-
-        /// <inheritdoc/>
-        public string KeyWhere => _keyWhere ?? (_keyWhere = string.Join(" AND ", _fields.Where(f => f.FieldType == FieldType.Key).Select(f => $"[{f.ColumnName}] = @{f.ColumnName}")));
-
-        #endregion
-
-        #region Sql Statements
-
-        /// <inheritdoc/>
-        public string SelectStatement
-        {
-            get => _selectStatement ?? (_selectStatement = $"SELECT {SelectColumnList} FROM [{TableName}]");
-            set => _selectStatement = value;
-        }
-
-        /// <inheritdoc/>
-        public string CountStatement
-        {
-            get => _countStatement ?? (_countStatement = $"SELECT COUNT(*) FROM [{TableName}]");
-            set => _countStatement = value;
-        }
-
-        /// <inheritdoc/>
-        public string InsertStatement
-        {
-            get => _insertStatement ?? (_insertStatement = $"INSERT INTO [{TableName}] ({InsertColumnList}) OUTPUT INSERTED.* VALUES ({InsertParameterList})");
-            set => _insertStatement = value;
-        }
-
-        /// <inheritdoc/>
-        public string UpdateStatement
-        {
-            get => _updateStatement ?? (_updateStatement = $"UPDATE [{TableName}] SET {UpdateSetString} OUTPUT INSERTED.* WHERE {KeyWhere}");
-            set => _updateStatement = value;
-        }
-
-        /// <inheritdoc/>
-        public string DeleteStatement
-        {
-            get => _deleteStatement ?? (_deleteStatement = $"DELETE FROM [{TableName}] WHERE {KeyWhere}");
-            set => _deleteStatement = value;
-        }
-
-        #endregion
+        
 
         #region Set Field Types
 
@@ -237,9 +154,8 @@ namespace LScape.Data.Mapping
         /// Tells the map fluent configuration is complete,
         /// and we can regenerate sql strings
         /// </summary>
-        public Map<T> CompleteConfiguration()
+        public virtual Map<T> CompleteConfiguration()
         {
-            ClearStrings();
             return this;
         }
 
@@ -259,7 +175,7 @@ namespace LScape.Data.Mapping
         /// Can be called multiple times, any properties not given
         /// a manual mapping will be automatically mapped
         /// </remarks>
-        public Map<T> Mapping(params IField[] fields)
+        public virtual Map<T> Mapping(params IField[] fields)
         {
             foreach (var newField in fields)
             {
@@ -271,7 +187,6 @@ namespace LScape.Data.Mapping
                 }
             }
 
-            ClearStrings();
             return this;
         }
 
@@ -455,8 +370,9 @@ namespace LScape.Data.Mapping
             return default(TKey);
         }
 
-        private void MapProperties(Type type, MapperConfiguration configuration)
+        private void MapProperties(MapperConfiguration configuration)
         {
+            var type = typeof(T);
             var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
 
             var fieldType = typeof(Field<>);
@@ -500,22 +416,6 @@ namespace LScape.Data.Mapping
             }
 
             return readProps;
-        }
-
-        private void ClearStrings()
-        {
-            _selectColumnList = null;
-            _insertColumnList = null;
-            _insertParameterList = null;
-            _updateSetString = null;
-            _keyName = null;
-            _keyWhere = null;
-
-            _selectStatement = null;
-            _countStatement = null;
-            _insertStatement = null;
-            _updateStatement = null;
-            _deleteStatement = null;
         }
     }
 }

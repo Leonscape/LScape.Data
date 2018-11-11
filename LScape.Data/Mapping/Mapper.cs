@@ -31,7 +31,7 @@ namespace LScape.Data.Mapping
         /// Retrieves the a map for a type
         /// </summary>
         /// <typeparam name="T">The type the map is for</typeparam>
-        /// <remarks>If no map is set creates one automatically base on the conventions set in the configuration</remarks>
+        /// <remarks>If no map is set creates one automatically based on the conventions set in the configuration</remarks>
         public static Map<T> Map<T>() where T : class, new()
         {
             if (!Instance._maps.TryGetValue(typeof(T), out var map))
@@ -40,6 +40,38 @@ namespace LScape.Data.Mapping
                 Instance._maps.TryAdd(typeof(T), map);
             }
             return map as Map<T>;
+        }
+
+        /// <summary>
+        /// Retrieves a sqlMap for a type
+        /// </summary>
+        /// <typeparam name="T">The type the map is for</typeparam>
+        /// <remarks>
+        /// If no map is set create one automatically based on the conventions in the configuration
+        /// If one exists, but it's a simple map, it will be replace by a new sqlMap that will preseve any configuration
+        /// </remarks>
+        public static SqlMap<T> SqlMap<T>() where T : class, new()
+        {
+            SqlMap<T> sqlMap = null;
+            if(Instance._maps.TryGetValue(typeof(T), out var map))
+            {
+                if(map is SqlMap<T> tmap)
+                {
+                    sqlMap = tmap;
+                }
+                else
+                {
+                    sqlMap = new SqlMap<T>(map as Map<T>);
+                    _instance._maps[typeof(T)] = sqlMap;
+                }
+            }
+            else
+            {
+                sqlMap = new SqlMap<T>();
+                Instance._maps.AddOrUpdate(typeof(T), sqlMap, (t, m) => sqlMap);
+            }
+
+            return sqlMap;
         }
 
         /// <summary>
